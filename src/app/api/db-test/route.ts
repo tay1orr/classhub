@@ -1,20 +1,11 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
-const databaseUrl = process.env.DATABASE_URL || process.env.database_url;
-
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: databaseUrl
-    }
-  }
-});
+const prisma = new PrismaClient();
 
 export async function GET() {
   try {
     console.log('DB Test: Starting...');
-    console.log('Database URL available:', !!databaseUrl);
     
     // 연결 테스트
     await prisma.$connect();
@@ -34,7 +25,6 @@ export async function GET() {
     
     return NextResponse.json({ 
       status: 'success',
-      dbUrl: !!databaseUrl,
       queryResult: result,
       tables: tables
     });

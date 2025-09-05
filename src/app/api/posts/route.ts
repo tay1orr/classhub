@@ -1,21 +1,11 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
-// DATABASE_URL 환경변수 처리
-const databaseUrl = process.env.DATABASE_URL || process.env.database_url;
-
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: databaseUrl
-    }
-  }
-});
+const prisma = new PrismaClient();
 
 export async function GET() {
   try {
     console.log('API: Starting posts fetch...');
-    console.log('Database URL available:', !!databaseUrl);
     
     // 먼저 연결 테스트
     await prisma.$connect();
