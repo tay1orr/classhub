@@ -101,9 +101,9 @@ export default function ClassroomPage() {
       const allPosts = [...storedPosts]
       // 기본 게시물도 추가 (조회수가 있을 경우)
       const defaultPostsWithBoard = [
-        ...recentPosts.free.map(p => ({ ...p, board: 'free', boardColor: 'bg-blue-500' })),
-        ...recentPosts.assignment.map(p => ({ ...p, board: 'assignment', boardColor: 'bg-green-500' })),
-        ...recentPosts.exam.map(p => ({ ...p, board: 'exam', boardColor: 'bg-purple-500' }))
+        ...recentPosts.free.map((p: any) => ({ ...p, board: 'free', boardColor: 'bg-blue-500' })),
+        ...recentPosts.assignment.map((p: any) => ({ ...p, board: 'assignment', boardColor: 'bg-green-500' })),
+        ...recentPosts.exam.map((p: any) => ({ ...p, board: 'exam', boardColor: 'bg-purple-500' }))
       ]
       
       const hotPostsList = [...allPosts, ...defaultPostsWithBoard]
