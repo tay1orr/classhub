@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String?
+  role         String   @default("STUDENT") // ADMIN, MOD, STUDENT
+  image        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  classrooms    UserClassroom[]
+  posts         Post[]
+  comments      Comment[]
+
+  // NextAuth
+  accounts Account[]
+  sessions Session[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+model Classroom {
+  id      String @id @default(cuid())
+  grade   Int
+  classNo Int
+  name    String
+
+  // Relations
+  users UserClassroom[]
+  posts Post[]
+
+  @@unique([grade, classNo])
+  @@map("classrooms")
+}
+
+model UserClassroom {
+  userId      String
+  classroomId String
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classroom Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+
+  @@id([userId, classroomId])
+  @@map("user_classrooms")
+}
+
+model Board {
+  id   String @id @default(cuid())
+  key  String @unique  // FREE, ASSIGNMENT, EXAM
+  name String
+
+  posts Post[]
+
+  @@map("boards")
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  boardId     String
+  classroomId String
+  authorId    String
+  title       String
+  content     String
+  isAnonymous Boolean   @default(false)
+  isPinned    Boolean   @default(false)
+  views       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  board     Board     @relation(fields: [boardId], references: [id])
+  classroom Classroom @relation(fields: [classroomId], references: [id])
+  author    User      @relation(fields: [authorId], references: [id])
+  comments  Comment[]
+
+  @@index([boardId, classroomId])
+  @@index([createdAt])
+  @@index([isPinned, createdAt])
+  @@map("posts")
+}
+
+model Comment {
+  id          String    @id @default(cuid())
+  postId      String
+  authorId    String
+  content     String
+  isAnonymous Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id])
+
+  @@index([postId])
+  @@map("comments")
+}
+
+model Todo {
+  id        String   @id @default(cuid())
+  text      String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("todos")
+}
