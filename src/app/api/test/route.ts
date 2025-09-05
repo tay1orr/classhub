@@ -3,11 +3,13 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     const dbUrl = process.env.DATABASE_URL;
+    const dbUrlLower = process.env.database_url;
     
     return NextResponse.json({ 
       status: 'ok',
-      hasDbUrl: !!dbUrl,
-      dbUrlPrefix: dbUrl ? dbUrl.substring(0, 20) + '...' : 'not set',
+      DATABASE_URL: !!dbUrl,
+      database_url: !!dbUrlLower,
+      dbUrlPrefix: (dbUrl || dbUrlLower) ? (dbUrl || dbUrlLower)!.substring(0, 20) + '...' : 'not set',
       nodeEnv: process.env.NODE_ENV
     });
   } catch (error) {
