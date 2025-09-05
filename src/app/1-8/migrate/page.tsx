@@ -124,7 +124,7 @@ export default function MigratePage() {
       
       // ID 중복 방지
       const uniquePosts = allPosts.reduce((acc, post) => {
-        if (!acc.find(p => p.id === post.id)) {
+        if (!acc.find((p: any) => p.id === post.id)) {
           acc.push(post)
         }
         return acc
