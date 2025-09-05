@@ -9,9 +9,9 @@ function getUsers() {
   const defaultUsers = [
     {
       id: '1',
-      name: '김교사',
-      email: 'admin@classhub.kr',
-      password: 'password123',
+      name: '관리자',
+      email: 'admin@classhub.co.kr',
+      password: 'admin123!',
       role: 'ADMIN'
     }
   ]
