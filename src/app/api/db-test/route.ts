@@ -38,20 +38,20 @@ export async function GET() {
       queryResult: result,
       tables: tables
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('DB Test Error:', {
-      message: error.message,
-      code: error.code,
-      meta: error.meta,
-      name: error.name,
-      stack: error.stack
+      message: error?.message || 'Unknown error',
+      code: error?.code || 'No code',
+      meta: error?.meta || 'No meta',
+      name: error?.name || 'Unknown',
+      stack: error?.stack || 'No stack'
     });
     
     return NextResponse.json({ 
       error: 'Database test failed',
-      details: error.message,
-      code: error.code,
-      name: error.name
+      details: error?.message || 'Unknown error',
+      code: error?.code || 'No code',
+      name: error?.name || 'Unknown'
     }, { status: 500 });
   } finally {
     await prisma.$disconnect();

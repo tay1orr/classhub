@@ -60,17 +60,17 @@ export async function GET() {
     }));
 
     return NextResponse.json({ posts: postsWithCounts });
-  } catch (error) {
+  } catch (error: any) {
     console.error('API Error details:', {
-      message: error.message,
-      code: error.code,
-      meta: error.meta,
-      name: error.name
+      message: error?.message || 'Unknown error',
+      code: error?.code || 'No code',
+      meta: error?.meta || 'No meta',
+      name: error?.name || 'Unknown'
     });
     return NextResponse.json({ 
       error: 'Failed to fetch posts',
-      details: error.message,
-      code: error.code
+      details: error?.message || 'Unknown error',
+      code: error?.code || 'No code'
     }, { status: 500 });
   } finally {
     await prisma.$disconnect();
