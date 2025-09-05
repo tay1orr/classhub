@@ -14,6 +14,13 @@ const prisma = new PrismaClient({
 
 export async function GET() {
   try {
+    console.log('API: Starting posts fetch...');
+    console.log('Database URL available:', !!databaseUrl);
+    
+    // 먼저 연결 테스트
+    await prisma.$connect();
+    console.log('API: Database connected successfully');
+    
     const posts = await prisma.post.findMany({
       include: {
         author: {
@@ -34,6 +41,8 @@ export async function GET() {
       }
     });
 
+    console.log('API: Found posts:', posts.length);
+
     const postsWithCounts = posts.map(post => ({
       id: post.id,
       title: post.title,
@@ -52,8 +61,17 @@ export async function GET() {
 
     return NextResponse.json({ posts: postsWithCounts });
   } catch (error) {
-    console.error('Error fetching posts:', error);
-    return NextResponse.json({ error: 'Failed to fetch posts' }, { status: 500 });
+    console.error('API Error details:', {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+      name: error.name
+    });
+    return NextResponse.json({ 
+      error: 'Failed to fetch posts',
+      details: error.message,
+      code: error.code
+    }, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }
