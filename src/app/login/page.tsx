@@ -90,7 +90,7 @@ export default function LoginPage() {
             <p className="text-sm text-muted-foreground mb-2">
               <strong>테스트 계정:</strong>
             </p>
-            <p className="text-xs">admin@classhub.kr / password123 (관리자)</p>
+            <p className="text-xs">admin@classhub.co.kr / admin123! (관리자)</p>
             <p className="text-xs text-blue-600">또는 방금 가입한 이메일과 비밀번호 사용</p>
             <p className="text-xs text-gray-500 mt-2">
               F12 → Console에서 디버그 정보 확인 가능
