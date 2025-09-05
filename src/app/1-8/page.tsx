@@ -13,9 +13,9 @@ import VictoryBanner from '@/components/ui/victory-banner'
 // 우리반 소식 - 사용자가 작성한 공지사항만 표시 (동적으로 로드됨)
 
 const recentPosts = {
-  free: [],
-  assignment: [],
-  exam: []
+  free: [] as any[],
+  assignment: [] as any[],
+  exam: [] as any[]
 }
 
 export default function ClassroomPage() {
