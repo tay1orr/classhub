@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+// DATABASE_URL 환경변수 처리
+const databaseUrl = process.env.DATABASE_URL || process.env.database_url;
+
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: databaseUrl
+    }
+  }
+});
 
 export async function GET() {
   try {
