@@ -35,7 +35,7 @@ class LocalStorage {
     localStorage.setItem('classhub_users', JSON.stringify(users))
   }
 
-  private getPosts(): Post[] {
+  private getStoredPosts(): Post[] {
     if (typeof window === 'undefined') return []
     const posts = localStorage.getItem('classhub_posts')
     return posts ? JSON.parse(posts) : this.getDefaultPosts()
@@ -113,7 +113,7 @@ class LocalStorage {
 
   // 게시글 관련 메서드
   getPosts(board?: string, classroom?: string): Post[] {
-    let posts = this.getPosts()
+    let posts = this.getStoredPosts()
     
     if (board) {
       posts = posts.filter(p => p.board === board)
@@ -127,7 +127,7 @@ class LocalStorage {
   }
 
   addPost(postData: Omit<Post, 'id' | 'views' | 'likes' | 'comments' | 'createdAt'>): Post {
-    const posts = this.getPosts()
+    const posts = this.getStoredPosts()
     
     const newPost: Post = {
       id: Date.now().toString(),
