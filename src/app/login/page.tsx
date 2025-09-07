@@ -95,6 +95,29 @@ export default function LoginPage() {
             <p className="text-xs text-gray-500 mt-2">
               F12 → Console에서 디버그 정보 확인 가능
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                // localStorage 완전 초기화
+                localStorage.clear();
+                
+                // 기본 관리자 계정 추가
+                const defaultUsers = [{
+                  id: '1',
+                  name: '관리자', 
+                  email: 'admin@classhub.co.kr',
+                  password: 'admin123!',
+                  role: 'ADMIN'
+                }];
+                localStorage.setItem('classhub_users', JSON.stringify(defaultUsers));
+                
+                alert('✅ 인증 데이터가 초기화되었습니다!\n이제 admin@classhub.co.kr / admin123! 로 로그인하세요.');
+                window.location.reload();
+              }}
+              className="mt-3 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs rounded border border-blue-300 transition-colors"
+            >
+              🔧 로그인 데이터 초기화
+            </button>
           </div>
         </CardContent>
       </Card>
