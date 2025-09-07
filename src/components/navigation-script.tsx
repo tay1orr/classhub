@@ -1,17 +1,18 @@
 'use client'
 
 import { useEffect } from 'react'
-import { getCurrentUser, isAdmin } from '@/lib/simple-auth'
+// 데이터베이스 기반 인증으로 변경됨
 
 export default function NavigationScript() {
   useEffect(() => {
     const updateNavigation = () => {
-      const currentUser = getCurrentUser()
+      const currentUserStr = localStorage.getItem('classhub_current_user')
+      const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null
       const navSection = document.getElementById('nav-user-section')
       if (!navSection) return
 
       if (currentUser) {
-        const adminButton = isAdmin(currentUser) ? `
+        const adminButton = (currentUser.role === 'ADMIN') ? `
           <a 
             href="/admin" 
             class="inline-flex items-center px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-colors ml-4"
