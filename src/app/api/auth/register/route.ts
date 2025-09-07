@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     });
 
     // 기본 교실에 추가 (1학년 8반)
-    await prisma.user_Classrooms.create({
+    await prisma.userClassroom.create({
       data: {
         userId: newUser.id,
         classroomId: 'classroom_1_8'
