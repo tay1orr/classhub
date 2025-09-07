@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
     // 특정 이메일들은 자동으로 관리자 권한 부여
     const adminEmails = [
-      'taylorr@glcass.ice.go.kr',
+      'taylorr@gclass.ice.go.kr',
       'admin@classhub.co.kr',
       'taylorr@naver.com'  // 사용자 이메일 추가
     ];
