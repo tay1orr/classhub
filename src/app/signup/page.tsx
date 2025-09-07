@@ -40,21 +40,28 @@ export default function SignupPage() {
     }
     
     try {
-      // 임시: 간단한 인메모리 회원가입
-      const { registerUser } = await import('@/lib/simple-auth')
-      const result = await registerUser({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password
+      // 데이터베이스 기반 회원가입 API 호출
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        }),
       })
 
+      const result = await response.json()
+
       if (result.success) {
-        alert(`${formData.name}님, 회원가입이 완료되었습니다! 이제 로그인해주세요.`)
+        alert(result.message)
         
         // 로그인 페이지로 리디렉션
         window.location.href = '/login'
       } else {
-        alert(result.message)
+        alert(result.error || '회원가입에 실패했습니다.')
       }
     } catch (error) {
       alert('회원가입 중 오류가 발생했습니다.')

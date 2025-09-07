@@ -16,19 +16,33 @@ export default function LoginPage() {
     setIsLoading(true)
     
     try {
-      // 임시: 간단한 인메모리 로그인
-      const { loginUser, setCurrentUser } = await import('@/lib/simple-auth')
-      const result = await loginUser(email, password)
+      // 데이터베이스 기반 로그인 API 호출
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const result = await response.json()
 
       if (result.success && result.user) {
         alert(`${result.user.name}님, 로그인되었습니다!`)
-        setCurrentUser(result.user)
+        
+        // 사용자 정보를 localStorage에 저장 (세션 관리용)
+        localStorage.setItem('classhub_current_user', JSON.stringify(result.user))
+        
+        // 네비바 업데이트를 위한 이벤트 발생
+        window.dispatchEvent(new Event('userStatusChanged'))
+        
         // 학급 홈으로 리디렉션
         window.location.href = '/1-8'
       } else {
-        alert(result.message)
+        alert(result.error || '로그인에 실패했습니다.')
       }
     } catch (error) {
+      console.error('Login error:', error)
       alert('로그인 중 오류가 발생했습니다.')
     } finally {
       setIsLoading(false)
