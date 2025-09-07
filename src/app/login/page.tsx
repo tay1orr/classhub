@@ -102,36 +102,12 @@ export default function LoginPage() {
 
           <div className="mt-4 p-4 bg-muted rounded-md">
             <p className="text-sm text-muted-foreground mb-2">
-              <strong>테스트 계정:</strong>
+              <strong>계정이 없으신가요?</strong>
             </p>
-            <p className="text-xs">admin@classhub.co.kr / admin123! (관리자)</p>
-            <p className="text-xs text-blue-600">또는 방금 가입한 이메일과 비밀번호 사용</p>
+            <p className="text-xs text-blue-600">회원가입 후 로그인해주세요</p>
             <p className="text-xs text-gray-500 mt-2">
-              F12 → Console에서 디버그 정보 확인 가능
+              관리자 권한이 필요한 경우 담당 선생님께 문의하세요
             </p>
-            <button
-              type="button"
-              onClick={() => {
-                // localStorage 완전 초기화
-                localStorage.clear();
-                
-                // 기본 관리자 계정 추가
-                const defaultUsers = [{
-                  id: '1',
-                  name: '관리자', 
-                  email: 'admin@classhub.co.kr',
-                  password: 'admin123!',
-                  role: 'ADMIN'
-                }];
-                localStorage.setItem('classhub_users', JSON.stringify(defaultUsers));
-                
-                alert('✅ 인증 데이터가 초기화되었습니다!\n이제 admin@classhub.co.kr / admin123! 로 로그인하세요.');
-                window.location.reload();
-              }}
-              className="mt-3 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs rounded border border-blue-300 transition-colors"
-            >
-              🔧 로그인 데이터 초기화
-            </button>
           </div>
         </CardContent>
       </Card>

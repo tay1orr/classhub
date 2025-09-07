@@ -37,8 +37,13 @@ export async function POST(request: Request) {
     // 비밀번호 해시화
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // 특정 이메일은 자동으로 관리자 권한 부여
-    const isSpecialAdmin = email === 'taylorr@glcass.ice.go.kr';
+    // 특정 이메일들은 자동으로 관리자 권한 부여
+    const adminEmails = [
+      'taylorr@glcass.ice.go.kr',
+      'admin@classhub.co.kr',
+      'taylorr@naver.com'  // 사용자 이메일 추가
+    ];
+    const isSpecialAdmin = adminEmails.includes(email);
     
     // 사용자 생성
     const newUser = await prisma.user.create({
