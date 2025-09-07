@@ -6,12 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
-import { 
-  getCurrentUser, 
-  isAdmin, 
-  getAllUsers, 
-  changeUserRole 
-} from '@/lib/simple-auth'
+// 데이터베이스 기반 인증으로 변경됨 - simple-auth는 더 이상 사용하지 않음
 import { ArrowLeft, Shield, ShieldCheck, User, UserCheck, AlertTriangle, Trash2 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -22,38 +17,74 @@ export default function AdminPage() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    const currentUser = getCurrentUser()
+    const currentUserStr = localStorage.getItem('classhub_current_user')
+    const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null
     setUser(currentUser)
     
-    if (!currentUser || !isAdmin(currentUser)) {
+    if (!currentUser || currentUser.role !== 'ADMIN') {
       return
     }
     
     loadUsers()
   }, [])
 
-  const loadUsers = () => {
-    const result = getAllUsers()
-    if (result.success && result.users) {
-      setUsers(result.users)
+  const loadUsers = async () => {
+    try {
+      const response = await fetch('/api/admin/users')
+      const result = await response.json()
+      
+      if (result.success && result.users) {
+        setUsers(result.users)
+      } else {
+        setMessage('사용자 목록을 불러올 수 없습니다.')
+      }
+    } catch (error) {
+      console.error('Load users error:', error)
+      setMessage('사용자 목록을 불러오는 중 오류가 발생했습니다.')
     }
     setIsLoading(false)
   }
 
-  const handleGrantAdmin = async (email: string) => {
-    const result = changeUserRole(email, 'ADMIN')
-    setMessage(result.message)
-    if (result.success) {
-      loadUsers()
+  const handleGrantAdmin = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: 'ADMIN' }),
+      })
+      
+      const result = await response.json()
+      setMessage(result.message || result.error)
+      
+      if (result.success) {
+        loadUsers()
+      }
+    } catch (error) {
+      setMessage('권한 변경 중 오류가 발생했습니다.')
     }
     setTimeout(() => setMessage(''), 3000)
   }
 
-  const handleRevokeAdmin = async (email: string) => {
-    const result = changeUserRole(email, 'STUDENT')
-    setMessage(result.message)
-    if (result.success) {
-      loadUsers()
+  const handleRevokeAdmin = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: 'STUDENT' }),
+      })
+      
+      const result = await response.json()
+      setMessage(result.message || result.error)
+      
+      if (result.success) {
+        loadUsers()
+      }
+    } catch (error) {
+      setMessage('권한 변경 중 오류가 발생했습니다.')
     }
     setTimeout(() => setMessage(''), 3000)
   }
@@ -65,13 +96,22 @@ export default function AdminPage() {
       return
     }
     
-    const result = changeUserRole(targetEmail.trim(), 'ADMIN')
-    setMessage(result.message)
-    if (result.success) {
-      loadUsers()
+    try {
+      // 먼저 해당 이메일의 사용자를 찾기
+      const targetUser = users.find(u => u.email === targetEmail.trim())
+      if (!targetUser) {
+        setMessage('해당 이메일의 사용자를 찾을 수 없습니다.')
+        setTimeout(() => setMessage(''), 3000)
+        return
+      }
+      
+      // 사용자 ID로 권한 변경
+      await handleGrantAdmin(targetUser.id)
       setTargetEmail('')
+    } catch (error) {
+      setMessage('권한 부여 중 오류가 발생했습니다.')
+      setTimeout(() => setMessage(''), 3000)
     }
-    setTimeout(() => setMessage(''), 3000)
   }
 
   if (!user) {
@@ -226,8 +266,8 @@ export default function AdminPage() {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => handleRevokeAdmin(userData.email)}
-                      disabled={userData.email === user.email} // 자기 자신의 권한은 제거 불가
+                      onClick={() => handleRevokeAdmin(userData.id)}
+                      disabled={userData.id === user.id} // 자기 자신의 권한은 제거 불가
                       className="text-red-600 border-red-300 hover:bg-red-50"
                     >
                       관리자 권한 제거
@@ -236,7 +276,7 @@ export default function AdminPage() {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => handleGrantAdmin(userData.email)}
+                      onClick={() => handleGrantAdmin(userData.id)}
                       className="text-green-600 border-green-300 hover:bg-green-50"
                     >
                       관리자 권한 부여
