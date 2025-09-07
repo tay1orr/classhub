@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL + '?pgbouncer=true&connection_limit=1'
-    }
-  }
-});
-
 export async function GET() {
+  // 매번 새로운 인스턴스 생성
+  const prisma = new PrismaClient({
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL + '?pgbouncer=true&connection_limit=1&pool_timeout=0'
+      }
+    }
+  });
+  
   try {
     console.log('Basic Test: Starting...');
     
