@@ -286,37 +286,13 @@ export default function AdminPage() {
                        userData.role === 'PENDING' ? '승인대기' : 
                        '학생'}
                     </Badge>
-                    {!userData.isApproved && (
-                      <Badge className="bg-orange-500 text-white">
-                        미승인
-                      </Badge>
-                    )}
                   </div>
                   <p className="text-sm text-gray-600">{userData.email}</p>
                   <p className="text-xs text-gray-400">ID: {userData.id}</p>
                 </div>
                 
                 <div className="flex gap-2">
-                  {!userData.isApproved ? (
-                    <>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleApproveUser(userData.id, 'STUDENT')}
-                        className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                      >
-                        학생으로 승인
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleApproveUser(userData.id, 'ADMIN')}
-                        className="text-green-600 border-green-300 hover:bg-green-50"
-                      >
-                        관리자로 승인
-                      </Button>
-                    </>
-                  ) : userData.role === 'ADMIN' ? (
+                  {userData.role === 'ADMIN' ? (
                     <Button 
                       variant="outline" 
                       size="sm"

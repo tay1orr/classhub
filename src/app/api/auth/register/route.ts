@@ -51,8 +51,7 @@ export async function POST(request: Request) {
         name,
         email,
         passwordHash,
-        role: isSpecialAdmin ? 'ADMIN' : 'STUDENT',
-        isApproved: true  // 임시로 모든 사용자 승인으로 설정
+        role: isSpecialAdmin ? 'ADMIN' : 'STUDENT'
       },
       select: {
         id: true,
