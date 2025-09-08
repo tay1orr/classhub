@@ -31,7 +31,6 @@ export async function POST(request: Request) {
         email: true,
         passwordHash: true,
         role: true,
-        isApproved: true,
         createdAt: true
       }
     });
@@ -53,13 +52,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // 승인 상태 확인
-    if (!user.isApproved) {
-      return NextResponse.json(
-        { error: '아직 관리자 승인이 완료되지 않았습니다. 승인 후 다시 로그인해주세요.' },
-        { status: 403 }
-      );
-    }
+    // 승인 상태 확인 (임시 비활성화 - 스키마 업데이트 후 활성화)
+    // if (!user.isApproved) {
+    //   return NextResponse.json(
+    //     { error: '아직 관리자 승인이 완료되지 않았습니다. 승인 후 다시 로그인해주세요.' },
+    //     { status: 403 }
+    //   );
+    // }
 
     // 비밀번호 해시 제거한 사용자 정보 반환
     const { passwordHash, ...userWithoutPassword } = user;

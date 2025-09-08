@@ -52,7 +52,7 @@ export async function POST(request: Request) {
         email,
         passwordHash,
         role: isSpecialAdmin ? 'ADMIN' : 'STUDENT',
-        isApproved: isSpecialAdmin // 관리자는 자동 승인, 일반 사용자는 승인 대기
+        // isApproved: isSpecialAdmin // 임시 비활성화 - 스키마 업데이트 후 활성화
       },
       select: {
         id: true,
