@@ -52,7 +52,7 @@ export async function POST(request: Request) {
         email,
         passwordHash,
         role: isSpecialAdmin ? 'ADMIN' : 'STUDENT',
-        isApproved: isSpecialAdmin // 관리자는 자동 승인, 일반 사용자는 승인 대기
+        isApproved: true // 임시로 모든 사용자 자동 승인 (데이터베이스 접근 문제)
       },
       select: {
         id: true,
