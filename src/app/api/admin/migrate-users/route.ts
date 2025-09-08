@@ -15,10 +15,7 @@ export async function POST() {
     // (기존 사용자들은 이미 사용하고 있었으므로 승인된 것으로 간주)
     const result = await prisma.user.updateMany({
       where: {
-        OR: [
-          { isApproved: null },
-          { isApproved: false }
-        ]
+        isApproved: false
       },
       data: {
         isApproved: true
