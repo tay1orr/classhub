@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     // 비밀번호 해시화
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // 특정 이메일들은 자동으로 관리자 권한 부여
+    // 특정 이메일들은 자동으로 관리자 권한 부여 (승인 없이)
     const adminEmails = [
       'taylorr@gclass.ice.go.kr',
       'admin@classhub.co.kr',
@@ -51,7 +51,8 @@ export async function POST(request: Request) {
         name,
         email,
         passwordHash,
-        role: isSpecialAdmin ? 'ADMIN' : 'STUDENT'
+        role: isSpecialAdmin ? 'ADMIN' : 'PENDING',
+        isApproved: isSpecialAdmin
       },
       select: {
         id: true,
@@ -76,8 +77,9 @@ export async function POST(request: Request) {
       success: true,
       message: isSpecialAdmin ? 
         '회원가입이 완료되었습니다! 관리자 권한이 자동으로 부여되었습니다. 🎉' : 
-        '회원가입이 완료되었습니다!',
-      user: newUser
+        '회원가입이 완료되었습니다! 관리자 승인 후 로그인하실 수 있습니다. ⏳',
+      user: newUser,
+      needsApproval: !isSpecialAdmin
     });
 
   } catch (error: any) {

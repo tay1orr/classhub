@@ -31,6 +31,7 @@ export async function POST(request: Request) {
         email: true,
         passwordHash: true,
         role: true,
+        isApproved: true,
         createdAt: true
       }
     });
@@ -49,6 +50,14 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: '이메일 또는 비밀번호가 올바르지 않습니다.' },
         { status: 401 }
+      );
+    }
+
+    // 승인 상태 확인
+    if (!user.isApproved) {
+      return NextResponse.json(
+        { error: '아직 관리자 승인이 완료되지 않았습니다. 승인 후 다시 로그인해주세요.' },
+        { status: 403 }
       );
     }
 

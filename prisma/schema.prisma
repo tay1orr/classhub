@@ -12,7 +12,8 @@ model User {
   email        String   @unique
   name         String
   passwordHash String?
-  role         String   @default("STUDENT") // ADMIN, MOD, STUDENT
+  role         String   @default("PENDING") // ADMIN, STUDENT, PENDING
+  isApproved   Boolean  @default(false)
   image        String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
