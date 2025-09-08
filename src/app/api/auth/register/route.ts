@@ -62,13 +62,8 @@ export async function POST(request: Request) {
       }
     });
 
-    // 기본 교실에 추가 (1학년 8반)
-    await prisma.userClassroom.create({
-      data: {
-        userId: newUser.id,
-        classroomId: 'classroom_1_8'
-      }
-    });
+    // 기본 교실 추가는 임시로 비활성화 (classroom이 존재하지 않을 수 있음)
+    // TODO: classroom 설정 후 활성화
 
     console.log('✅ 새 사용자 등록:', newUser);
     
