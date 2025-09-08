@@ -158,6 +158,28 @@ export default function AdminPage() {
     setTimeout(() => setMessage(''), 3000)
   }
 
+  const handleMigrateSchema = async () => {
+    if (!confirm('데이터베이스 스키마를 업데이트하시겠습니까?\n\n이 작업은 isApproved 필드를 추가하고 관리자들을 자동 승인합니다.')) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/migrate-schema', {
+        method: 'POST',
+      })
+      
+      const result = await response.json()
+      setMessage(result.message || result.error)
+      
+      if (result.success) {
+        loadUsers()
+      }
+    } catch (error) {
+      setMessage('스키마 마이그레이션 중 오류가 발생했습니다.')
+    }
+    setTimeout(() => setMessage(''), 5000)
+  }
+
   const handleMigrateExistingUsers = async () => {
     if (!confirm('기존 사용자들을 자동으로 승인하시겠습니까?\n\n이 작업은 오늘 이전에 가입한 모든 미승인 사용자를 승인 처리합니다.')) {
       return
@@ -306,6 +328,13 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid gap-2">
+              <Button 
+                onClick={handleMigrateSchema}
+                className="w-full justify-start bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                데이터베이스 스키마 업데이트
+              </Button>
               <Button 
                 onClick={handleMigrateExistingUsers}
                 className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white"
