@@ -96,6 +96,90 @@ export default function AdminPage() {
     setTimeout(() => setMessage(''), 3000)
   }
 
+  const handleApproveUser = async (userId: string, userName: string) => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/approve`, {
+        method: 'PATCH',
+      })
+      
+      const result = await response.json()
+      setMessage(result.message || result.error)
+      
+      if (result.success) {
+        loadUsers()
+      }
+    } catch (error) {
+      setMessage('사용자 승인 중 오류가 발생했습니다.')
+    }
+    setTimeout(() => setMessage(''), 3000)
+  }
+
+  const handleRejectUser = async (userId: string, userName: string) => {
+    if (!confirm(`정말로 "${userName}"님의 가입 신청을 거부하시겠습니까?\n\n⚠️ 거부하면 해당 사용자 계정이 완전히 삭제됩니다!`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/reject`, {
+        method: 'DELETE',
+      })
+      
+      const result = await response.json()
+      setMessage(result.message || result.error)
+      
+      if (result.success) {
+        loadUsers()
+      }
+    } catch (error) {
+      setMessage('사용자 거부 중 오류가 발생했습니다.')
+    }
+    setTimeout(() => setMessage(''), 3000)
+  }
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`정말로 "${userName}" 사용자를 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다!\n- 사용자의 모든 게시글과 댓글이 삭제됩니다.\n- 관련된 모든 데이터가 영구적으로 제거됩니다.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/delete`, {
+        method: 'DELETE',
+      })
+      
+      const result = await response.json()
+      setMessage(result.message || result.error)
+      
+      if (result.success) {
+        loadUsers()
+      }
+    } catch (error) {
+      setMessage('사용자 삭제 중 오류가 발생했습니다.')
+    }
+    setTimeout(() => setMessage(''), 3000)
+  }
+
+  const handleMigrateExistingUsers = async () => {
+    if (!confirm('기존 사용자들을 자동으로 승인하시겠습니까?\n\n이 작업은 오늘 이전에 가입한 모든 미승인 사용자를 승인 처리합니다.')) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/migrate-existing-users', {
+        method: 'POST',
+      })
+      
+      const result = await response.json()
+      setMessage(result.message || result.error)
+      
+      if (result.success) {
+        loadUsers()
+      }
+    } catch (error) {
+      setMessage('기존 사용자 마이그레이션 중 오류가 발생했습니다.')
+    }
+    setTimeout(() => setMessage(''), 5000)
+  }
+
   const handleGrantAdminByEmail = async () => {
     if (!targetEmail.trim()) {
       setMessage('이메일을 입력해주세요.')
@@ -222,6 +306,13 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid gap-2">
+              <Button 
+                onClick={handleMigrateExistingUsers}
+                className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <UserCheck className="h-4 w-4 mr-2" />
+                기존 사용자 자동 승인
+              </Button>
               <Link href="/1-6/free">
                 <Button variant="outline" className="w-full justify-start">
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -251,6 +342,9 @@ export default function AdminPage() {
           <CardTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
             전체 사용자 관리 ({users.length}명)
+            <Badge className="bg-yellow-500 text-white">
+              승인 대기: {users.filter(u => !u.isApproved).length}명
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -265,31 +359,71 @@ export default function AdminPage() {
                     >
                       {userData.role === 'ADMIN' ? '관리자' : '학생'}
                     </Badge>
+                    <Badge 
+                      className={userData.isApproved ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'}
+                    >
+                      {userData.isApproved ? '승인됨' : '승인 대기'}
+                    </Badge>
                   </div>
                   <p className="text-sm text-gray-600">{userData.email}</p>
                   <p className="text-xs text-gray-400">ID: {userData.id}</p>
                 </div>
                 
                 <div className="flex gap-2">
-                  {userData.role === 'ADMIN' ? (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleRevokeAdmin(userData.id)}
-                      disabled={userData.id === user.id} // 자기 자신의 권한은 제거 불가
-                      className="text-red-600 border-red-300 hover:bg-red-50"
-                    >
-                      관리자 권한 제거
-                    </Button>
+                  {!userData.isApproved ? (
+                    // 승인 대기 상태: 승인/거부 버튼 표시
+                    <>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleApproveUser(userData.id, userData.name)}
+                        className="text-green-600 border-green-300 hover:bg-green-50"
+                      >
+                        승인
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleRejectUser(userData.id, userData.name)}
+                        className="text-red-600 border-red-300 hover:bg-red-50"
+                      >
+                        거부
+                      </Button>
+                    </>
                   ) : (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleGrantAdmin(userData.id)}
-                      className="text-green-600 border-green-300 hover:bg-green-50"
-                    >
-                      관리자 권한 부여
-                    </Button>
+                    // 승인된 사용자: 역할 관리 및 삭제 버튼
+                    <>
+                      {userData.role === 'ADMIN' ? (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleRevokeAdmin(userData.id)}
+                          disabled={userData.id === user.id} // 자기 자신의 권한은 제거 불가
+                          className="text-red-600 border-red-300 hover:bg-red-50"
+                        >
+                          관리자 권한 제거
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleGrantAdmin(userData.id)}
+                          className="text-green-600 border-green-300 hover:bg-green-50"
+                        >
+                          관리자 권한 부여
+                        </Button>
+                      )}
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDeleteUser(userData.id, userData.name)}
+                        disabled={userData.id === user.id} // 자기 자신은 삭제 불가
+                        className="text-red-600 border-red-300 hover:bg-red-50"
+                      >
+                        삭제
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -324,10 +458,12 @@ export default function AdminPage() {
           <div className="text-sm text-yellow-800 space-y-2">
             <p><strong>관리자가 할 수 있는 작업:</strong></p>
             <ul className="list-disc list-inside space-y-1 ml-4">
+              <li>사용자 가입 승인/거부</li>
               <li>모든 게시글 삭제 권한</li>
               <li>공지사항 작성 권한 (게시글 상단 고정)</li>
               <li>댓글 삭제 권한</li>
               <li>다른 사용자에게 관리자 권한 부여/제거</li>
+              <li>사용자 계정 삭제</li>
               <li>전체 사용자 목록 조회</li>
             </ul>
             <p className="text-xs mt-4 text-yellow-600">

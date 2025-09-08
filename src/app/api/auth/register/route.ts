@@ -51,7 +51,8 @@ export async function POST(request: Request) {
         name,
         email,
         passwordHash,
-        role: isSpecialAdmin ? 'ADMIN' : 'STUDENT'
+        role: isSpecialAdmin ? 'ADMIN' : 'STUDENT',
+        isApproved: isSpecialAdmin // 관리자는 자동 승인, 일반 사용자는 승인 대기
       },
       select: {
         id: true,
@@ -71,9 +72,9 @@ export async function POST(request: Request) {
       success: true,
       message: isSpecialAdmin ? 
         '회원가입이 완료되었습니다! 관리자 권한이 자동으로 부여되었습니다. 🎉' : 
-        '회원가입이 완료되었습니다! 🎉',
+        '회원가입이 완료되었습니다! 관리자 승인 후 이용하실 수 있습니다. ⏳',
       user: newUser,
-      needsApproval: false
+      needsApproval: !isSpecialAdmin
     });
 
   } catch (error: any) {
