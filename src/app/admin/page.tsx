@@ -30,17 +30,23 @@ export default function AdminPage() {
 
   const loadUsers = async () => {
     try {
+      console.log('🔄 Loading users...')
       const response = await fetch('/api/admin/users')
       const result = await response.json()
       
+      console.log('📋 API Response:', result)
+      console.log('👥 Users data:', result.users)
+      
       if (result.success && result.users) {
         setUsers(result.users)
+        console.log('✅ Users set successfully:', result.users.length, 'users')
       } else {
-        setMessage('사용자 목록을 불러올 수 없습니다.')
+        console.error('❌ API returned error:', result)
+        setMessage('사용자 목록을 불러올 수 없습니다: ' + (result.error || 'Unknown error'))
       }
     } catch (error) {
-      console.error('Load users error:', error)
-      setMessage('사용자 목록을 불러오는 중 오류가 발생했습니다.')
+      console.error('❌ Load users error:', error)
+      setMessage('사용자 목록을 불러오는 중 오류가 발생했습니다: ' + error)
     }
     setIsLoading(false)
   }
@@ -289,9 +295,20 @@ export default function AdminPage() {
               </div>
             ))}
             
-            {users.length === 0 && (
+            {users.length === 0 && !isLoading && (
               <div className="text-center py-8 text-gray-500">
-                등록된 사용자가 없습니다.
+                <p>등록된 사용자가 없습니다.</p>
+                <p className="text-sm mt-2">API에서 사용자 목록을 불러올 수 없습니다.</p>
+                <Button onClick={loadUsers} className="mt-4">
+                  다시 시도
+                </Button>
+              </div>
+            )}
+            
+            {isLoading && (
+              <div className="text-center py-8 text-gray-500">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                사용자 목록을 불러오는 중...
               </div>
             )}
           </div>
