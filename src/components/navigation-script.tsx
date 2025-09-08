@@ -6,12 +6,19 @@ import { useEffect } from 'react'
 export default function NavigationScript() {
   useEffect(() => {
     const updateNavigation = () => {
+      console.log('🔄 Updating navigation...')
       const currentUserStr = localStorage.getItem('classhub_current_user')
       const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null
+      console.log('👤 Current user:', currentUser)
+      
       const navSection = document.getElementById('nav-user-section')
-      if (!navSection) return
+      if (!navSection) {
+        console.log('❌ nav-user-section not found')
+        return
+      }
 
       if (currentUser) {
+        console.log('✅ User is logged in, updating nav')
         // 임시: taylorr@gclass.ice.go.kr 계정은 무조건 관리자 버튼 표시
         const isForceAdmin = currentUser.email === 'taylorr@gclass.ice.go.kr'
         const adminButton = (currentUser.role === 'ADMIN' || isForceAdmin) ? `
@@ -40,7 +47,9 @@ export default function NavigationScript() {
             ${adminButton}
           </div>
         `
+        console.log('✅ Navigation updated with user info')
       } else {
+        console.log('❌ No user, showing login buttons')
         navSection.innerHTML = `
           <a href="/login" class="text-gray-600 hover:text-blue-600 font-medium">
             로그인
@@ -62,15 +71,34 @@ export default function NavigationScript() {
     // 전역 함수 등록
     ;(window as any).logout = logout
 
-    // 초기 로드
-    updateNavigation()
+    // 초기 로드 (약간 지연)
+    setTimeout(updateNavigation, 100)
+    
+    // 주기적 업데이트 (개발용)
+    const interval = setInterval(() => {
+      updateNavigation()
+    }, 2000)
 
     // 이벤트 리스너
-    const handleStorageChange = () => updateNavigation()
+    const handleStorageChange = () => {
+      console.log('🔄 Storage changed, updating navigation...')
+      setTimeout(updateNavigation, 100)
+    }
+    
     window.addEventListener('storage', handleStorageChange)
     window.addEventListener('userStatusChanged', handleStorageChange)
+    
+    // 페이지 로드 완료 후 업데이트
+    if (document.readyState === 'complete') {
+      setTimeout(updateNavigation, 500)
+    } else {
+      window.addEventListener('load', () => {
+        setTimeout(updateNavigation, 500)
+      })
+    }
 
     return () => {
+      clearInterval(interval)
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('userStatusChanged', handleStorageChange)
     }
