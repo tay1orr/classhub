@@ -12,7 +12,9 @@ export default function NavigationScript() {
       if (!navSection) return
 
       if (currentUser) {
-        const adminButton = (currentUser.role === 'ADMIN') ? `
+        // 임시: taylorr@gclass.ice.go.kr 계정은 무조건 관리자 버튼 표시
+        const isForceAdmin = currentUser.email === 'taylorr@gclass.ice.go.kr'
+        const adminButton = (currentUser.role === 'ADMIN' || isForceAdmin) ? `
           <a 
             href="/admin" 
             class="inline-flex items-center px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-colors ml-4"

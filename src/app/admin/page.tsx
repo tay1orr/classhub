@@ -128,7 +128,9 @@ export default function AdminPage() {
     )
   }
 
-  if (user?.role !== 'ADMIN') {
+  // 임시: taylorr@gclass.ice.go.kr 계정은 무조건 관리자 권한 허용
+  const isForceAdmin = user?.email === 'taylorr@gclass.ice.go.kr'
+  if (user?.role !== 'ADMIN' && !isForceAdmin) {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="text-center">
