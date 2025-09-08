@@ -67,27 +67,6 @@ export default function AdminPage() {
     setTimeout(() => setMessage(''), 3000)
   }
 
-  const handleApproveUser = async (userId: string, role: 'ADMIN' | 'STUDENT') => {
-    try {
-      const response = await fetch(`/api/admin/users/${userId}/approve`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ role }),
-      })
-      
-      const result = await response.json()
-      setMessage(result.message || result.error)
-      
-      if (result.success) {
-        loadUsers()
-      }
-    } catch (error) {
-      setMessage('사용자 승인 중 오류가 발생했습니다.')
-    }
-    setTimeout(() => setMessage(''), 3000)
-  }
 
   const handleRevokeAdmin = async (userId: string) => {
     try {
@@ -276,15 +255,9 @@ export default function AdminPage() {
                   <div className="flex items-center gap-3">
                     <h3 className="font-semibold">{userData.name}</h3>
                     <Badge 
-                      className={
-                        userData.role === 'ADMIN' ? 'bg-red-500 text-white' : 
-                        userData.role === 'PENDING' ? 'bg-yellow-500 text-white' : 
-                        'bg-blue-500 text-white'
-                      }
+                      className={userData.role === 'ADMIN' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}
                     >
-                      {userData.role === 'ADMIN' ? '관리자' : 
-                       userData.role === 'PENDING' ? '승인대기' : 
-                       '학생'}
+                      {userData.role === 'ADMIN' ? '관리자' : '학생'}
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-600">{userData.email}</p>
@@ -334,7 +307,6 @@ export default function AdminPage() {
           <div className="text-sm text-yellow-800 space-y-2">
             <p><strong>관리자가 할 수 있는 작업:</strong></p>
             <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>신규 가입자 승인/거부</li>
               <li>모든 게시글 삭제 권한</li>
               <li>공지사항 작성 권한 (게시글 상단 고정)</li>
               <li>댓글 삭제 권한</li>
