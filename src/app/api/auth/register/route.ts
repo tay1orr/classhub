@@ -52,13 +52,14 @@ export async function POST(request: Request) {
         email,
         passwordHash,
         role: isSpecialAdmin ? 'ADMIN' : 'STUDENT',
-        // isApproved: isSpecialAdmin // 임시 비활성화 - 스키마 업데이트 후 활성화
+        isApproved: isSpecialAdmin
       },
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
+        isApproved: true,
         createdAt: true
       }
     });
