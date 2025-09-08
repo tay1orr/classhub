@@ -343,7 +343,7 @@ export default function AdminPage() {
             <User className="h-5 w-5" />
             전체 사용자 관리 ({users.length}명)
             <Badge className="bg-yellow-500 text-white">
-              승인 대기: {users.filter(u => !u.isApproved).length}명
+              일반 사용자: {users.filter(u => u.role === 'STUDENT').length}명
             </Badge>
           </CardTitle>
         </CardHeader>
@@ -360,9 +360,9 @@ export default function AdminPage() {
                       {userData.role === 'ADMIN' ? '관리자' : '학생'}
                     </Badge>
                     <Badge 
-                      className={userData.isApproved ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'}
+                      className={userData.role === 'ADMIN' ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'}
                     >
-                      {userData.isApproved ? '승인됨' : '승인 대기'}
+                      {userData.role === 'ADMIN' ? '승인됨' : '임시승인'}
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-600">{userData.email}</p>
@@ -370,8 +370,8 @@ export default function AdminPage() {
                 </div>
                 
                 <div className="flex gap-2">
-                  {!userData.isApproved ? (
-                    // 승인 대기 상태: 승인/거부 버튼 표시
+                  {!userData.isApproved && userData.role !== 'ADMIN' ? (
+                    // 승인 대기 상태 (관리자 제외): 승인/거부 버튼 표시
                     <>
                       <Button 
                         variant="outline" 
