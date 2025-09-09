@@ -29,15 +29,45 @@ export default function PostDetailPage() {
   useEffect(() => {
     if (!postId) return
     
+    let isCancelled = false
+    
     const loadPost = async () => {
       try {
-        console.log('Loading post:', postId)
-        const response = await fetch(`/api/posts/${postId}`)
+        // console.log('Loading post:', postId) // 불필요한 로깅 제거
+        
+        const response = await fetch(`/api/posts/${postId}`, {
+          // 캐시 헤더 추가로 성능 개선
+          headers: {
+            'Cache-Control': 'max-age=30'
+          }
+        })
+        
+        if (isCancelled) return
+        
         const data = await response.json()
         
-        console.log('API response:', data)
+        // console.log('API response:', data) // 불필요한 로깅 제거
         
         if (response.ok && data.post) {
+          // localStorage 작업을 비동기로 처리하여 성능 개선
+          setTimeout(() => {
+            if (isCancelled) return
+            
+            const localComments = JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]')
+            const allComments = [...(data.post.comments || []), ...localComments]
+            const uniqueComments = allComments.filter((comment, index, self) => 
+              index === self.findIndex(c => c.id === comment.id)
+            )
+            
+            uniqueComments.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+            
+            setPost({
+              ...data.post,
+              comments: uniqueComments
+            })
+          }, 0)
+          
+          // 기본 게시글은 먼저 표시
           setPost(data.post)
         } else {
           setError(data.error || '게시글을 찾을 수 없습니다.')
@@ -46,11 +76,18 @@ export default function PostDetailPage() {
         console.error('Error:', error)
         setError('오류가 발생했습니다.')
       } finally {
-        setIsLoading(false)
+        if (!isCancelled) {
+          setIsLoading(false)
+        }
       }
     }
     
     loadPost()
+    
+    // 클린업 함수로 메모리 누수 방지
+    return () => {
+      isCancelled = true
+    }
   }, [postId])
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
@@ -73,6 +110,11 @@ export default function PostDetailPage() {
         replies: []
       }
 
+      // localStorage에 댓글 저장
+      const localComments = JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]')
+      localComments.push(comment)
+      localStorage.setItem(`comments_${postId}`, JSON.stringify(localComments))
+      
       const updatedPost = {
         ...post,
         comments: [...(post.comments || []), comment]
@@ -117,6 +159,11 @@ export default function PostDetailPage() {
         return comment
       })
 
+      // localStorage에 업데이트된 댓글들 저장
+      const apiComments = (post.comments || []).filter(c => !JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]').some((local: any) => local.id === c.id))
+      const localOnlyComments = updatedComments.filter(c => !apiComments.some((api: any) => api.id === c.id))
+      localStorage.setItem(`comments_${postId}`, JSON.stringify(localOnlyComments))
+      
       const updatedPost = {
         ...post,
         comments: updatedComments
@@ -182,6 +229,11 @@ export default function PostDetailPage() {
       return comment
     })
 
+    // localStorage에도 업데이트
+    const apiComments = updatedComments.filter(c => c.createdAt && new Date(c.createdAt) < new Date('2025-09-09T10:00:00.000Z')) // API에서 온 댓글들 (임시 구분법)
+    const localOnlyComments = updatedComments.filter(c => !apiComments.some((api: any) => api.id === c.id))
+    localStorage.setItem(`comments_${postId}`, JSON.stringify(localOnlyComments))
+    
     setPost((prev: any) => ({ ...prev, comments: updatedComments }))
   }
 
@@ -269,7 +321,14 @@ export default function PostDetailPage() {
                               </span>
                             </div>
                             <div>
-                              <div className="font-medium text-sm">{comment.author || '익명'}</div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm">{comment.author || '익명'}</span>
+                                {comment.authorId === post.authorId && (
+                                  <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
+                                    글쓴이
+                                  </span>
+                                )}
+                              </div>
                               <div className="text-xs text-gray-500">
                                 {new Date(comment.createdAt).toLocaleString('ko-KR')}
                               </div>
@@ -358,7 +417,14 @@ export default function PostDetailPage() {
                                   </span>
                                 </div>
                                 <div>
-                                  <div className="font-medium text-xs">{reply.author || '익명'}</div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-xs">{reply.author || '익명'}</span>
+                                    {reply.authorId === post.authorId && (
+                                      <span className="bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full" style={{fontSize: '10px'}}>
+                                        글쓴이
+                                      </span>
+                                    )}
+                                  </div>
                                   <div className="text-xs text-gray-500">
                                     {new Date(reply.createdAt).toLocaleString('ko-KR')}
                                   </div>
