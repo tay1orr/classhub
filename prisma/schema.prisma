@@ -22,6 +22,10 @@ model User {
   classrooms    UserClassroom[]
   posts         Post[]
   comments      Comment[]
+  postLikes     PostLike[]
+  commentLikes  CommentLike[]
+  commentReports CommentReport[]
+  announcements Announcement[]
 
   // NextAuth
   accounts Account[]
@@ -78,6 +82,7 @@ model Classroom {
   // Relations
   users UserClassroom[]
   posts Post[]
+  announcements Announcement[]
 
   @@unique([grade, classNo])
   @@map("classrooms")
@@ -114,6 +119,9 @@ model Post {
   isAnonymous Boolean   @default(false)
   isPinned    Boolean   @default(false)
   views       Int       @default(0)
+  likesCount  Int       @default(0)
+  dislikesCount Int     @default(0)
+  image       String?   // For photo posts
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
@@ -123,10 +131,12 @@ model Post {
   classroom Classroom @relation(fields: [classroomId], references: [id])
   author    User      @relation(fields: [authorId], references: [id])
   comments  Comment[]
+  likes     PostLike[]
 
   @@index([boardId, classroomId])
   @@index([createdAt])
   @@index([isPinned, createdAt])
+  @@index([title, content])
   @@map("posts")
 }
 
@@ -134,8 +144,10 @@ model Comment {
   id          String    @id @default(cuid())
   postId      String
   authorId    String
+  parentId    String?   // For nested replies
   content     String
   isAnonymous Boolean   @default(false)
+  likesCount  Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
@@ -143,8 +155,13 @@ model Comment {
   // Relations
   post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   author User @relation(fields: [authorId], references: [id])
+  parent Comment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies Comment[] @relation("CommentReplies")
+  likes  CommentLike[]
+  reports CommentReport[]
 
   @@index([postId])
+  @@index([parentId])
   @@map("comments")
 }
 
@@ -155,4 +172,61 @@ model Todo {
   createdAt DateTime @default(now())
 
   @@map("todos")
+}
+
+model PostLike {
+  id     String @id @default(cuid())
+  userId String
+  postId String
+  isLike Boolean // true = like, false = dislike
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("post_likes")
+}
+
+model CommentLike {
+  id        String @id @default(cuid())
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+  @@map("comment_likes")
+}
+
+model CommentReport {
+  id        String @id @default(cuid())
+  userId    String
+  commentId String
+  reason    String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+  @@map("comment_reports")
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  authorId  String
+  classroomId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author    User      @relation(fields: [authorId], references: [id])
+  classroom Classroom @relation(fields: [classroomId], references: [id])
+
+  @@index([classroomId, createdAt])
+  @@map("announcements")
 }
