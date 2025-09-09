@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ThumbsUp, MessageCircle, Flag, Send } from 'lucide-react'
 import { getCurrentUser } from '@/lib/simple-auth'
 
@@ -71,11 +70,9 @@ function CommentItem({ comment, onReply, onLike, onReport, user, depth = 0 }: Co
       <Card className="bg-gray-50">
         <CardContent className="p-4">
           <div className="flex items-start space-x-3">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="text-xs">
-                {comment.isAnonymous ? '익명' : comment.author.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
+            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-medium text-blue-600">
+              {comment.isAnonymous ? '익명' : comment.author.charAt(0)}
+            </div>
             
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-2">
