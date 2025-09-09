@@ -182,7 +182,7 @@ export default function PostDetailPage() {
       return comment
     })
 
-    setPost(prev => ({ ...prev, comments: updatedComments }))
+    setPost((prev: any) => ({ ...prev, comments: updatedComments }))
   }
 
   if (isLoading) {
