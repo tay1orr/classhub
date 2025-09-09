@@ -53,24 +53,14 @@ export default function PostDetailPage() {
     }
   }
 
-    // 댓글 좋아요/싫어요 상태 초기화
-    const initialLikes: {[key: string]: {liked: boolean, disliked: boolean}} = {}
-    const initialCounts: {[key: string]: {likes: number, dislikes: number}} = {}
-    const initializeCommentStates = (postComments: any[]) => {
-      postComments.forEach((comment: any) => {
-        initialLikes[comment.id] = { liked: false, disliked: false }
-      initialCounts[comment.id] = { likes: comment.likes || 0, dislikes: comment.dislikes || 0 }
-    })
-    setCommentLikes(initialLikes)
-    setCommentCounts(initialCounts)
-
+  useEffect(() => {
     // 시간 업데이트를 위한 interval 설정
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date())
     }, 60000) // 1분마다 업데이트
 
     return () => clearInterval(timeInterval)
-  }, [postId])
+  }, [])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
