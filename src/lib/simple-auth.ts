@@ -142,10 +142,12 @@ export function canDeletePost(post: any, user: any = null): boolean {
   return isAdmin(currentUser) || post.authorId === currentUser.id
 }
 
-// 댓글 삭제 (관리자만 가능)
-export function canDeleteComment(user: any = null): boolean {
+// 댓글 삭제 (관리자 또는 댓글 작성자만 가능)
+export function canDeleteComment(comment: any, user: any = null): boolean {
   const currentUser = user || getCurrentUser()
-  return isAdmin(currentUser)
+  if (!currentUser) return false
+  
+  return isAdmin(currentUser) || comment.authorId === currentUser.id
 }
 
 // 공지사항 작성 권한 (관리자만 가능)
