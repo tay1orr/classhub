@@ -16,6 +16,8 @@ const defaultPosts: any[] = []
 export default function PostDetailPage() {
   const [user, setUser] = useState<any>(null)
   const [post, setPost] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
   const [viewCount, setViewCount] = useState(0)
@@ -34,7 +36,13 @@ export default function PostDetailPage() {
   }, [postId])
 
   const loadPost = async () => {
-    if (!postId) return
+    if (!postId) {
+      setIsLoading(false)
+      return
+    }
+    
+    setIsLoading(true)
+    setError(null)
     
     try {
       const response = await fetch(`/api/posts/${postId}`)
@@ -46,10 +54,13 @@ export default function PostDetailPage() {
         setLikeCount(data.post.likes || 0)
         setComments(data.post.comments || [])
       } else {
-        console.error('Failed to load post:', data.error)
+        setError(data.error || '게시글을 찾을 수 없습니다.')
       }
     } catch (error) {
       console.error('Error loading post:', error)
+      setError('게시글을 불러오는 중 오류가 발생했습니다.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -272,11 +283,22 @@ export default function PostDetailPage() {
     }))
   }
 
-  if (!post) {
+  if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="text-center">
-          <p className="text-gray-500">게시글을 찾을 수 없습니다.</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-500">게시글을 불러오는 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !post) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error || '게시글을 찾을 수 없습니다.'}</p>
           <Link href="/1-8/free">
             <Button className="mt-4">자유게시판으로 돌아가기</Button>
           </Link>
