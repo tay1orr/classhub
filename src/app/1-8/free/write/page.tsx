@@ -50,27 +50,28 @@ export default function WritePostPage() {
     setIsSubmitting(true)
     
     try {
-      // 임시로 localStorage에 게시글 저장
-      const posts = JSON.parse(localStorage.getItem('classhub_posts') || '[]')
-      const newPost = {
-        id: Date.now(),
-        title: title.trim(),
-        content: content.trim(),
-        author: anonymous ? '익명' : user.name,
-        authorId: user.id,
-        board: 'free',
-        createdAt: new Date().toISOString(),
-        views: 0,
-        likes: 0,
-        comments: 0,
-        anonymous,
-        isPinned,
-        category,
-        tags: category ? [category] : []
-      }
+      // 데이터베이스에 게시글 저장
+      const response = await fetch('/api/posts/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          content: content.trim(),
+          authorId: user.id,
+          boardKey: 'FREE',
+          isAnonymous: anonymous,
+          isPinned,
+          category: category || null
+        })
+      })
       
-      posts.push(newPost)
-      localStorage.setItem('classhub_posts', JSON.stringify(posts))
+      const result = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(result.error || '게시글 등록에 실패했습니다.')
+      }
       
       alert('게시글이 등록되었습니다!')
       window.location.href = '/1-8/free'

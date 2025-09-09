@@ -92,28 +92,28 @@ export default function WriteMemoryPage() {
     setIsSubmitting(true)
 
     try {
-      const storedPosts = JSON.parse(localStorage.getItem('classhub_posts') || '[]')
-      const newId = Math.max(...storedPosts.map((p: any) => p.id), 0) + 1
-
-      const newPost = {
-        id: newId,
-        board: 'memories',
-        title: title.trim(),
-        content: content.trim(),
-        author: user.name,
-        isAnonymous: anonymous,
-        anonymous: anonymous,
-        createdAt: new Date().toISOString(),
-        views: 0,
-        likes: 0,
-        comments: 0,
-        tags: tags,
-        hasImage: selectedImage !== null,
-        imageData: imagePreview // Base64 이미지 데이터 저장 (실제 구현에서는 별도 저장소 사용)
+      // 데이터베이스에 게시글 저장
+      const response = await fetch('/api/posts/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          content: content.trim(),
+          authorId: user.id,
+          boardKey: 'MEMORIES',
+          isAnonymous: anonymous,
+          isPinned: false,
+          category: tags.length > 0 ? tags.join(', ') : null
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(result.error || '추억 등록에 실패했습니다.')
       }
-
-      const updatedPosts = [...storedPosts, newPost]
-      localStorage.setItem('classhub_posts', JSON.stringify(updatedPosts))
 
       alert('추억이 성공적으로 등록되었습니다! 💝')
       router.push('/1-8/memories')
