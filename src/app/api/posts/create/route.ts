@@ -11,7 +11,8 @@ export async function POST(request: Request) {
   });
 
   try {
-    const { title, content, authorId, boardKey, isAnonymous, isPinned, category } = await request.json();
+    const body = await request.text();
+    const { title, content, authorId, boardKey, isAnonymous, isPinned, category } = JSON.parse(body);
 
     console.log('Creating post:', { title, content, authorId, boardKey, isAnonymous, isPinned, category });
 
