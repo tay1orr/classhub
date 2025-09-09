@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
-  const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL + '?pgbouncer=true&connection_limit=1&pool_timeout=0&client_encoding=utf8'
-      }
-    }
-  });
 
   try {
     const body = await request.text();
@@ -104,7 +97,5 @@ export async function POST(request: Request) {
       { error: 'Failed to create post: ' + error.message },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

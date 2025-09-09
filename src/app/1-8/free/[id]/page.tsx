@@ -9,6 +9,7 @@ import { ArrowLeft, Eye, ThumbsUp, MessageSquare, Heart, Trash2, ThumbsDown } fr
 import { getCurrentUser, canDeletePost, canDeleteComment } from '@/lib/simple-auth'
 import { useParams } from 'next/navigation'
 import { LikeButton } from '@/components/LikeButton'
+import CommentSystem from '@/components/CommentSystem'
 
 // 기본 게시글 없음 - 사용자가 작성한 글만 표시
 const defaultPosts: any[] = []
@@ -406,101 +407,7 @@ export default function PostDetailPage() {
       </Card>
 
       {/* 댓글 섹션 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>댓글 {post.comments || 0}개</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {user ? (
-            <div className="space-y-4">
-              {/* 댓글 목록 */}
-              <div className="space-y-4">
-                {comments.map((comment) => (
-                  <div key={comment.id} className="border-b pb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <span className="font-medium text-sm">{comment.author}</span>
-                        <span className="text-xs text-gray-500">{formatDate(comment.createdAt)}</span>
-                      </div>
-                      {/* 댓글 삭제 버튼 (관리자만) */}
-                      {user && canDeleteComment(user) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteComment(comment.id)}
-                          className="text-red-600 border-red-300 hover:bg-red-50 h-6 px-2"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-gray-800 text-sm mb-3">{comment.content}</p>
-                    
-                    {/* 댓글 좋아요/싫어요 버튼 */}
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCommentLike(comment.id, true)}
-                        className={`h-6 px-2 ${commentLikes[comment.id]?.liked ? 'text-blue-600 bg-blue-50' : 'text-gray-500'} hover:text-blue-600 hover:bg-blue-50`}
-                      >
-                        <ThumbsUp className="h-3 w-3 mr-1" />
-                        {commentCounts[comment.id]?.likes || 0}
-                      </Button>
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCommentLike(comment.id, false)}
-                        className={`h-6 px-2 ${commentLikes[comment.id]?.disliked ? 'text-red-600 bg-red-50' : 'text-gray-500'} hover:text-red-600 hover:bg-red-50`}
-                      >
-                        <ThumbsDown className="h-3 w-3 mr-1" />
-                        {commentCounts[comment.id]?.dislikes || 0}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                {comments.length === 0 && (
-                  <div className="text-center py-4 text-gray-500">
-                    아직 댓글이 없습니다. 첫 댓글을 남겨보세요!
-                  </div>
-                )}
-              </div>
-
-              {/* 댓글 작성 폼 */}
-              <form onSubmit={handleCommentSubmit} className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
-                    <textarea
-                      placeholder="댓글을 입력하세요..."
-                      className="w-full p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      rows={3}
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <Button 
-                    type="submit" 
-                    size="sm" 
-                    disabled={!newComment.trim() || isSubmittingComment}
-                  >
-                    {isSubmittingComment ? '작성 중...' : '댓글 작성'}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">댓글을 작성하려면 로그인이 필요합니다.</p>
-              <Link href="/login">
-                <Button>로그인하기</Button>
-              </Link>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <CommentSystem postId={postId as string} />
     </div>
   )
 }

@@ -22,26 +22,34 @@ export default function AssignmentBoardPage() {
 
   useEffect(() => {
     setUser(getCurrentUser())
-    
-    // localStorage에서 게시글 로드
-    const storedPosts = JSON.parse(localStorage.getItem('classhub_posts') || '[]')
-    const assignmentPosts = storedPosts.filter((post: any) => post.board === 'assignment')
-    
-    // 모든 게시글 합치기
-    const allPosts = [...defaultPosts, ...assignmentPosts]
-    
-    // 공지사항을 먼저, 그 다음 최신순으로 정렬
-    allPosts.sort((a: any, b: any) => {
-      // 공지사항 우선
-      if (a.isPinned && !b.isPinned) return -1
-      if (!a.isPinned && b.isPinned) return 1
-      
-      // 같은 공지 여부면 최신순
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    })
-    
-    setPosts(allPosts)
+    loadPosts()
   }, [])
+
+  const loadPosts = async () => {
+    try {
+      const response = await fetch('/api/posts')
+      const data = await response.json()
+      
+      if (response.ok) {
+        // 수행평가 게시글만 필터링
+        const assignmentPosts = data.posts.filter((post: any) => post.board === 'assignment')
+        
+        // 공지사항을 먼저, 그 다음 최신순으로 정렬
+        assignmentPosts.sort((a: any, b: any) => {
+          // 공지사항 우선
+          if (a.isPinned && !b.isPinned) return -1
+          if (!a.isPinned && b.isPinned) return 1
+          
+          // 같은 공지 여부면 최신순
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        })
+        
+        setPosts(assignmentPosts)
+      }
+    } catch (error) {
+      console.error('Failed to load posts:', error)
+    }
+  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -94,16 +102,13 @@ export default function AssignmentBoardPage() {
     if (!confirm(`선택한 ${selectedPosts.length}개의 게시글을 삭제하시겠습니까?`)) return
 
     try {
-      // localStorage에서 게시글 삭제
-      const storedPosts = JSON.parse(localStorage.getItem('classhub_posts') || '[]')
-      const updatedPosts = storedPosts.filter((p: any) => !selectedPosts.includes(p.id.toString()))
-      localStorage.setItem('classhub_posts', JSON.stringify(updatedPosts))
-
-      // 해당 게시글들의 댓글도 모두 삭제
-      const storedComments = JSON.parse(localStorage.getItem('classhub_comments') || '[]')
-      const updatedComments = storedComments.filter((c: any) => !selectedPosts.includes(c.postId))
-      localStorage.setItem('classhub_comments', JSON.stringify(updatedComments))
-
+      // API를 통해 게시글 삭제
+      const deletePromises = selectedPosts.map(postId => 
+        fetch(`/api/posts/${postId}`, { method: 'DELETE' })
+      )
+      
+      await Promise.all(deletePromises)
+      
       // 상태 업데이트
       setPosts(prev => prev.filter(p => !selectedPosts.includes(p.id.toString())))
       setSelectedPosts([])

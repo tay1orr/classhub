@@ -100,16 +100,13 @@ export default function FreeBoardPage() {
     if (!confirm(`선택한 ${selectedPosts.length}개의 게시글을 삭제하시겠습니까?`)) return
 
     try {
-      // localStorage에서 게시글 삭제
-      const storedPosts = JSON.parse(localStorage.getItem('classhub_posts') || '[]')
-      const updatedPosts = storedPosts.filter((p: any) => !selectedPosts.includes(p.id.toString()))
-      localStorage.setItem('classhub_posts', JSON.stringify(updatedPosts))
-
-      // 해당 게시글들의 댓글도 모두 삭제
-      const storedComments = JSON.parse(localStorage.getItem('classhub_comments') || '[]')
-      const updatedComments = storedComments.filter((c: any) => !selectedPosts.includes(c.postId))
-      localStorage.setItem('classhub_comments', JSON.stringify(updatedComments))
-
+      // API를 통해 게시글 삭제
+      const deletePromises = selectedPosts.map(postId => 
+        fetch(`/api/posts/${postId}`, { method: 'DELETE' })
+      )
+      
+      await Promise.all(deletePromises)
+      
       // 상태 업데이트
       setPosts(prev => prev.filter(p => !selectedPosts.includes(p.id.toString())))
       setSelectedPosts([])

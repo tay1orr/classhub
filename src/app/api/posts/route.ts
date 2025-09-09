@@ -1,31 +1,34 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
-  // 매번 새로운 인스턴스 생성
-  const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL + '?pgbouncer=true&connection_limit=1&pool_timeout=0&client_encoding=utf8'
-      }
-    }
-  });
   try {
     console.log('API: Starting posts fetch...');
     
-    // 먼저 연결 테스트
-    await prisma.$connect();
-    console.log('API: Database connected successfully');
-    
     const posts = await prisma.post.findMany({
-      include: {
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        isAnonymous: true,
+        isPinned: true,
+        views: true,
+        likesCount: true,
+        dislikesCount: true,
+        createdAt: true,
+        updatedAt: true,
         author: {
           select: {
-            name: true,
-            id: true
+            id: true,
+            name: true
           }
         },
-        board: true,
+        board: {
+          select: {
+            key: true,
+            name: true
+          }
+        },
         comments: {
           select: {
             id: true
@@ -70,7 +73,5 @@ export async function GET() {
       details: error?.message || 'Unknown error',
       code: error?.code || 'No code'
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }

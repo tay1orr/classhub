@@ -21,14 +21,7 @@ export default function MemoriesPage() {
 
   useEffect(() => {
     setUser(getCurrentUser())
-    
-    const storedPosts = JSON.parse(localStorage.getItem('classhub_posts') || '[]')
-    const memoryPosts = storedPosts
-      .filter((post: any) => post.board === 'memories')
-      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    
-    setPosts(memoryPosts)
-    setFilteredPosts(memoryPosts)
+    loadPosts()
 
     // 시간 업데이트
     const timeInterval = setInterval(() => {
@@ -37,6 +30,33 @@ export default function MemoriesPage() {
 
     return () => clearInterval(timeInterval)
   }, [])
+
+  const loadPosts = async () => {
+    try {
+      const response = await fetch('/api/posts')
+      const data = await response.json()
+      
+      if (response.ok) {
+        // 추억 게시글만 필터링
+        const memoryPosts = data.posts.filter((post: any) => post.board === 'memories')
+        
+        // 공지사항을 먼저, 그 다음 최신순으로 정렬
+        memoryPosts.sort((a: any, b: any) => {
+          // 공지사항 우선
+          if (a.isPinned && !b.isPinned) return -1
+          if (!a.isPinned && b.isPinned) return 1
+          
+          // 같은 공지 여부면 최신순
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        })
+        
+        setPosts(memoryPosts)
+        setFilteredPosts(memoryPosts)
+      }
+    } catch (error) {
+      console.error('Failed to load posts:', error)
+    }
+  }
 
   useEffect(() => {
     if (searchTerm) {

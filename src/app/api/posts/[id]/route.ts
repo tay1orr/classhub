@@ -1,33 +1,46 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL + '?pgbouncer=true&connection_limit=1&pool_timeout=0&client_encoding=utf8'
-      }
-    }
-  });
 
   try {
     const postId = params.id;
 
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        isAnonymous: true,
+        isPinned: true,
+        views: true,
+        likesCount: true,
+        dislikesCount: true,
+        createdAt: true,
+        updatedAt: true,
         author: {
           select: {
             id: true,
             name: true
           }
         },
-        board: true,
+        board: {
+          select: {
+            key: true,
+            name: true
+          }
+        },
         comments: {
-          include: {
+          select: {
+            id: true,
+            content: true,
+            isAnonymous: true,
+            likesCount: true,
+            createdAt: true,
             author: {
               select: {
                 id: true,
@@ -91,7 +104,48 @@ export async function GET(
       { error: 'Failed to fetch post: ' + error.message },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const postId = params.id;
+
+    // 게시글이 존재하는지 확인
+    const post = await prisma.post.findUnique({
+      where: { id: postId }
+    });
+
+    if (!post) {
+      return NextResponse.json(
+        { error: 'Post not found' },
+        { status: 404 }
+      );
+    }
+
+    // 먼저 관련 댓글들 삭제
+    await prisma.comment.deleteMany({
+      where: { postId: postId }
+    });
+
+    // 게시글 삭제
+    await prisma.post.delete({
+      where: { id: postId }
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Post deleted successfully' 
+    });
+
+  } catch (error: any) {
+    console.error('Delete post error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete post: ' + error.message },
+      { status: 500 }
+    );
   }
 }
