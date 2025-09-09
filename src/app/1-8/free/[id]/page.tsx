@@ -9,7 +9,6 @@ import { ArrowLeft, Eye, ThumbsUp, MessageSquare, Heart, Trash2, ThumbsDown } fr
 import { getCurrentUser, canDeletePost, canDeleteComment } from '@/lib/simple-auth'
 import { useParams } from 'next/navigation'
 import { LikeButton } from '@/components/LikeButton'
-import CommentSystem from '@/components/CommentSystem'
 
 // 기본 게시글 없음 - 사용자가 작성한 글만 표시
 const defaultPosts: any[] = []
@@ -406,8 +405,81 @@ export default function PostDetailPage() {
         </CardContent>
       </Card>
 
-      {/* 댓글 섹션 */}
-      <CommentSystem postId={postId as string} />
+      {/* 댓글 섹션 - 임시 비활성화 (API 누락) */}
+      <Card>
+        <CardContent className="pt-6">
+          <h3 className="text-lg font-semibold mb-4">댓글 {comments.length}개</h3>
+          
+          {/* 새 댓글 작성 */}
+          {user ? (
+            <form onSubmit={handleCommentSubmit} className="mb-6 space-y-3">
+              <textarea
+                placeholder="댓글을 작성하세요..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="min-h-[100px] w-full p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={4}
+              />
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  disabled={isSubmittingComment || !newComment.trim()}
+                >
+                  댓글 작성
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="mb-6 p-4 bg-gray-100 rounded-lg text-center">
+              <p className="text-gray-600">댓글을 작성하려면 로그인이 필요합니다.</p>
+            </div>
+          )}
+          
+          {/* 댓글 목록 */}
+          <div className="space-y-4">
+            {comments.length > 0 ? (
+              comments.map((comment) => (
+                <div key={comment.id} className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-medium text-blue-600">
+                      {comment.author.charAt(0)}
+                    </div>
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium text-sm">{comment.author}</span>
+                          <span className="text-xs text-gray-500">
+                            {formatDate(comment.createdAt)}
+                          </span>
+                        </div>
+                        
+                        {user && canDeleteComment(comment, user) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteComment(comment.id)}
+                            className="text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <p className="text-sm text-gray-700">{comment.content}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">아직 댓글이 없습니다.</p>
+                <p className="text-sm text-gray-400 mt-1">첫 번째 댓글을 작성해보세요!</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
