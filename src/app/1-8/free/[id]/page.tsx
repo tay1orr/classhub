@@ -45,15 +45,21 @@ export default function PostDetailPage() {
     setError(null)
     
     try {
+      console.log('Loading post with ID:', postId)
       const response = await fetch(`/api/posts/${postId}`)
       const data = await response.json()
       
+      console.log('Post API response:', data)
+      
       if (response.ok && data.post) {
+        console.log('Post data received:', data.post)
         setPost(data.post)
         setViewCount(data.post.views)
         setLikeCount(data.post.likes || 0)
         setComments(data.post.comments || [])
+        console.log('Post state updated successfully')
       } else {
+        console.error('Post API error:', data)
         setError(data.error || '게시글을 찾을 수 없습니다.')
       }
     } catch (error) {
@@ -74,27 +80,36 @@ export default function PostDetailPage() {
   }, [])
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = currentTime
-    const diff = now.getTime() - date.getTime()
-    const minutes = Math.floor(diff / (1000 * 60))
-    const hours = Math.floor(diff / (1000 * 60 * 60))
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+    try {
+      if (!dateString) return '날짜 없음'
+      
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return '잘못된 날짜'
+      
+      const now = currentTime
+      const diff = now.getTime() - date.getTime()
+      const minutes = Math.floor(diff / (1000 * 60))
+      const hours = Math.floor(diff / (1000 * 60 * 60))
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
 
-    // 1주일 이상이면 날짜만 표시
-    if (days >= 7) {
-      return date.toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric'
-      }).replace(/\. /g, '. ')
+      // 1주일 이상이면 날짜만 표시
+      if (days >= 7) {
+        return date.toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric'
+        }).replace(/\. /g, '. ')
+      }
+      
+      // 1주일 미만이면 상대적 시간 표시
+      if (minutes < 1) return '방금 전'
+      if (minutes < 60) return `${minutes}분 전`
+      if (hours < 24) return `${hours}시간 전`
+      return `${days}일 전`
+    } catch (error) {
+      console.error('Date formatting error:', error)
+      return '날짜 오류'
     }
-    
-    // 1주일 미만이면 상대적 시간 표시
-    if (minutes < 1) return '방금 전'
-    if (minutes < 60) return `${minutes}분 전`
-    if (hours < 24) return `${hours}시간 전`
-    return `${days}일 전`
   }
 
   const handleLike = () => {
@@ -307,103 +322,104 @@ export default function PostDetailPage() {
     )
   }
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* 뒤로가기 */}
-      <div className="flex items-center gap-4">
-        <Link href="/1-8/free" className="flex items-center gap-2 text-blue-600 hover:underline">
-          <ArrowLeft className="h-4 w-4" />
-          자유게시판으로 돌아가기
-        </Link>
-      </div>
+  try {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* 뒤로가기 */}
+        <div className="flex items-center gap-4">
+          <Link href="/1-8/free" className="flex items-center gap-2 text-blue-600 hover:underline">
+            <ArrowLeft className="h-4 w-4" />
+            자유게시판으로 돌아가기
+          </Link>
+        </div>
 
-      {/* 게시글 */}
-      <Card>
-        <CardHeader>
-          <div className="space-y-4">
-            {/* 제목과 태그 */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                {post.isPinned && (
-                  <Badge className="bg-yellow-500 text-white">공지</Badge>
-                )}
-                {post.tags && post.tags.map((tag: string) => (
-                  <Badge key={tag} variant="outline" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-              <h1 className="text-2xl font-bold">{post.title}</h1>
-            </div>
-
-            {/* 메타 정보 */}
-            <div className="flex items-center justify-between text-sm text-gray-500 border-b pb-4">
-              <div className="flex items-center gap-4">
-                <span className="font-medium">
-                  {(post.isAnonymous || post.anonymous) ? '익명' : post.author}
-                </span>
-                <span>{formatDate(post.createdAt)}</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <Eye className="h-4 w-4" />
-                  <span>{viewCount}</span>
+        {/* 게시글 */}
+        <Card>
+          <CardHeader>
+            <div className="space-y-4">
+              {/* 제목과 태그 */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  {post.isPinned && (
+                    <Badge className="bg-yellow-500 text-white">공지</Badge>
+                  )}
+                  {post.tags && post.tags.map((tag: string) => (
+                    <Badge key={tag} variant="outline" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
                 </div>
-                <div className="flex items-center gap-1">
-                  <ThumbsUp className="h-4 w-4" />
-                  <span>{likeCount}</span>
+                <h1 className="text-2xl font-bold">{post.title || '제목 없음'}</h1>
+              </div>
+
+              {/* 메타 정보 */}
+              <div className="flex items-center justify-between text-sm text-gray-500 border-b pb-4">
+                <div className="flex items-center gap-4">
+                  <span className="font-medium">
+                    {(post.isAnonymous || post.anonymous) ? '익명' : (post.author || '작성자 없음')}
+                  </span>
+                  <span>{formatDate(post.createdAt)}</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <MessageSquare className="h-4 w-4" />
-                  <span>{post.comments || 0}</span>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1">
+                    <Eye className="h-4 w-4" />
+                    <span>{viewCount || 0}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ThumbsUp className="h-4 w-4" />
+                    <span>{likeCount || 0}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <MessageSquare className="h-4 w-4" />
+                    <span>{post.comments || 0}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent>
-          {/* 게시글 내용 */}
-          <div className="prose max-w-none">
-            <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
-              {post.content}
-            </div>
-          </div>
-
-          {/* 좋아요/댓글 버튼 */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t">
-            <div className="flex items-center gap-3">
-              <Button
-                variant={liked ? "default" : "outline"}
-                size="sm"
-                onClick={handleLike}
-                className={liked ? "bg-red-500 hover:bg-red-600" : ""}
-              >
-                <Heart className={`h-4 w-4 mr-1 ${liked ? 'fill-current' : ''}`} />
-                좋아요 {likeCount}
-              </Button>
-              
-              <Button variant="outline" size="sm">
-                <MessageSquare className="h-4 w-4 mr-1" />
-                댓글 {post.comments || 0}
-              </Button>
+          </CardHeader>
+          
+          <CardContent>
+            {/* 게시글 내용 */}
+            <div className="prose max-w-none">
+              <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+                {post.content || '내용 없음'}
+              </div>
             </div>
 
-            {/* 게시글 삭제 버튼 (관리자 또는 작성자만) */}
-            {user && canDeletePost(post, user) && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDeletePost}
-                className="text-red-600 border-red-300 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                삭제
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            {/* 좋아요/댓글 버튼 */}
+            <div className="flex items-center justify-between mt-8 pt-6 border-t">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant={liked ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleLike}
+                  className={liked ? "bg-red-500 hover:bg-red-600" : ""}
+                >
+                  <Heart className={`h-4 w-4 mr-1 ${liked ? 'fill-current' : ''}`} />
+                  좋아요 {likeCount || 0}
+                </Button>
+                
+                <Button variant="outline" size="sm">
+                  <MessageSquare className="h-4 w-4 mr-1" />
+                  댓글 {post.comments || 0}
+                </Button>
+              </div>
+
+              {/* 게시글 삭제 버튼 (관리자 또는 작성자만) */}
+              {user && canDeletePost && canDeletePost(post, user) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDeletePost}
+                  className="text-red-600 border-red-300 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  삭제
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
       {/* 댓글 섹션 - 임시 비활성화 (API 누락) */}
       <Card>
@@ -437,40 +453,51 @@ export default function PostDetailPage() {
           
           {/* 댓글 목록 */}
           <div className="space-y-4">
-            {comments.length > 0 ? (
-              comments.map((comment) => (
-                <div key={comment.id} className="bg-gray-50 p-4 rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-medium text-blue-600">
-                      {comment.author.charAt(0)}
-                    </div>
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium text-sm">{comment.author}</span>
-                          <span className="text-xs text-gray-500">
-                            {formatDate(comment.createdAt)}
-                          </span>
+            {comments && comments.length > 0 ? (
+              comments.map((comment) => {
+                try {
+                  return (
+                    <div key={comment.id || Math.random()} className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex items-start space-x-3">
+                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-medium text-blue-600">
+                          {(comment.author || 'U').charAt(0)}
                         </div>
                         
-                        {user && canDeleteComment(comment, user) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="text-red-600 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        )}
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium text-sm">{comment.author || '익명'}</span>
+                              <span className="text-xs text-gray-500">
+                                {formatDate(comment.createdAt)}
+                              </span>
+                            </div>
+                            
+                            {user && canDeleteComment && comment && canDeleteComment(comment, user) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteComment(comment.id)}
+                                className="text-red-600 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                          
+                          <p className="text-sm text-gray-700">{comment.content || '내용 없음'}</p>
+                        </div>
                       </div>
-                      
-                      <p className="text-sm text-gray-700">{comment.content}</p>
                     </div>
-                  </div>
-                </div>
-              ))
+                  )
+                } catch (commentError) {
+                  console.error('Comment render error:', commentError, comment)
+                  return (
+                    <div key={comment.id || Math.random()} className="bg-red-50 p-4 rounded-lg">
+                      <p className="text-red-600 text-sm">댓글 표시 중 오류가 발생했습니다.</p>
+                    </div>
+                  )
+                }
+              })
             ) : (
               <div className="text-center py-8">
                 <p className="text-gray-500">아직 댓글이 없습니다.</p>
@@ -482,4 +509,18 @@ export default function PostDetailPage() {
       </Card>
     </div>
   )
+  } catch (renderError) {
+    console.error('Render error in post detail:', renderError)
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">게시글을 표시하는 중 오류가 발생했습니다.</p>
+          <p className="text-sm text-gray-600 mb-4">에러 내용: {renderError?.toString()}</p>
+          <Link href="/1-8/free">
+            <Button className="mt-4">자유게시판으로 돌아가기</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
 }
