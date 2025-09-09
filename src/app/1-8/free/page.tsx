@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { Search, Plus, Eye, MessageSquare, ThumbsUp, Trash2, CheckSquare, Square } from 'lucide-react'
 import { getCurrentUser, isAdmin } from '@/lib/simple-auth'
+import { LikeButton } from '@/components/LikeButton'
 
 export default function FreeBoardPage() {
   const [user, setUser] = useState<any>(null)
@@ -19,23 +20,34 @@ export default function FreeBoardPage() {
 
   useEffect(() => {
     setUser(getCurrentUser())
-    
-    // localStorage에서 사용자 게시글만 로드
-    const storedPosts = JSON.parse(localStorage.getItem('classhub_posts') || '[]')
-    const freePosts = storedPosts.filter((post: any) => post.board === 'free')
-    
-    // 공지사항을 먼저, 그 다음 최신순으로 정렬
-    freePosts.sort((a: any, b: any) => {
-      // 공지사항 우선
-      if (a.isPinned && !b.isPinned) return -1
-      if (!a.isPinned && b.isPinned) return 1
-      
-      // 같은 공지 여부면 최신순
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    })
-    
-    setPosts(freePosts)
+    loadPosts()
   }, [])
+
+  const loadPosts = async () => {
+    try {
+      const response = await fetch('/api/posts')
+      const data = await response.json()
+      
+      if (response.ok) {
+        // 자유게시판 게시글만 필터링
+        const freePosts = data.posts.filter((post: any) => post.board === 'free')
+        
+        // 공지사항을 먼저, 그 다음 최신순으로 정렬
+        freePosts.sort((a: any, b: any) => {
+          // 공지사항 우선
+          if (a.isPinned && !b.isPinned) return -1
+          if (!a.isPinned && b.isPinned) return 1
+          
+          // 같은 공지 여부면 최신순
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        })
+        
+        setPosts(freePosts)
+      }
+    } catch (error) {
+      console.error('Failed to load posts:', error)
+    }
+  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -293,10 +305,12 @@ export default function FreeBoardPage() {
                         <Eye className="h-4 w-4" />
                         <span>{post.views || 0}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <ThumbsUp className="h-4 w-4" />
-                        <span>{post.likes || 0}</span>
-                      </div>
+                      <LikeButton
+                        postId={post.id}
+                        initialLikes={post.likes || 0}
+                        initialDislikes={post.dislikes || 0}
+                        size="sm"
+                      />
                     </div>
                   </div>
                 </div>

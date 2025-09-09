@@ -14,12 +14,15 @@ export async function POST(
   });
 
   try {
-    const { isLike } = await request.json(); // true for like, false for dislike
+    const { userId, isLike } = await request.json(); // true for like, false for dislike
     const postId = params.id;
-    
-    // For now, we'll use a simple approach without user authentication
-    // In a real app, you'd get userId from session
-    const tempUserId = `temp_${Date.now()}_${Math.random()}`;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 }
+      );
+    }
 
     // Check if post exists
     const post = await prisma.post.findUnique({
@@ -33,32 +36,84 @@ export async function POST(
       );
     }
 
-    // For now, we'll just update the post counters directly
-    // In the enhanced schema, we would track individual likes
-    if (isLike) {
-      await prisma.post.update({
-        where: { id: postId },
-        data: {
-          views: { increment: 1 } // Using views field temporarily for likes
+    // Check if user already liked/disliked this post
+    const existingLike = await prisma.postLike.findUnique({
+      where: {
+        userId_postId: {
+          userId: userId,
+          postId: postId
         }
-      });
+      }
+    });
+
+    if (existingLike) {
+      if (existingLike.isLike === isLike) {
+        // Same action - remove the like/dislike
+        await prisma.$transaction([
+          prisma.postLike.delete({
+            where: { id: existingLike.id }
+          }),
+          prisma.post.update({
+            where: { id: postId },
+            data: isLike 
+              ? { likesCount: { decrement: 1 } }
+              : { dislikesCount: { decrement: 1 } }
+          })
+        ]);
+      } else {
+        // Different action - update the like/dislike
+        await prisma.$transaction([
+          prisma.postLike.update({
+            where: { id: existingLike.id },
+            data: { isLike }
+          }),
+          prisma.post.update({
+            where: { id: postId },
+            data: isLike
+              ? { likesCount: { increment: 1 }, dislikesCount: { decrement: 1 } }
+              : { likesCount: { decrement: 1 }, dislikesCount: { increment: 1 } }
+          })
+        ]);
+      }
+    } else {
+      // New like/dislike
+      await prisma.$transaction([
+        prisma.postLike.create({
+          data: {
+            userId,
+            postId,
+            isLike
+          }
+        }),
+        prisma.post.update({
+          where: { id: postId },
+          data: isLike
+            ? { likesCount: { increment: 1 } }
+            : { dislikesCount: { increment: 1 } }
+        })
+      ]);
     }
 
+    // Get updated post with counts
     const updatedPost = await prisma.post.findUnique({
       where: { id: postId },
       select: {
         id: true,
-        views: true,
-        // likesCount: true,    // Will be available after schema migration
-        // dislikesCount: true  // Will be available after schema migration
+        likesCount: true,
+        dislikesCount: true,
+        likes: {
+          where: { userId },
+          select: { isLike: true }
+        }
       }
     });
 
     return NextResponse.json({
       success: true,
       post: updatedPost,
-      likes: updatedPost?.views || 0,
-      dislikes: 0
+      likes: updatedPost?.likesCount || 0,
+      dislikes: updatedPost?.dislikesCount || 0,
+      userLike: updatedPost?.likes[0]?.isLike ?? null
     });
 
   } catch (error: any) {

@@ -50,6 +50,8 @@ export async function GET() {
       isAnonymous: post.isAnonymous,
       isPinned: post.isPinned,
       views: post.views,
+      likes: post.likesCount,
+      dislikes: post.dislikesCount,
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString(),
       comments: post.comments.length
