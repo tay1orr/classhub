@@ -34,17 +34,19 @@ export default function FreeBoardPage() {
             
             let localCommentCount = localComments.length
             
+            // 로컬 댓글의 답글 수만 카운팅 (답글 중복 카운팅 방지)
             localComments.forEach((comment: any) => {
               if (comment.replies && comment.replies.length > 0) {
                 localCommentCount += comment.replies.length
               }
             })
             
-            Object.values(apiCommentReplies).forEach((replies: any) => {
-              if (Array.isArray(replies)) {
-                localCommentCount += replies.length
-              }
-            })
+            // API 댓글의 답글은 이미 위에서 카운팅되므로 제거
+            // Object.values(apiCommentReplies).forEach((replies: any) => {
+            //   if (Array.isArray(replies)) {
+            //     localCommentCount += replies.length
+            //   }
+            // })
             
             if (localCommentCount > 0) {
               console.log(`Free board - Post ${post.title}: API comments=${post.comments}, localStorage comments=${localCommentCount}, originalComments=${post.originalComments}`)

@@ -56,22 +56,22 @@ export default function ClassroomPage() {
           const localComments = JSON.parse(localStorage.getItem(`comments_${post.id}`) || '[]')
           const apiCommentReplies = JSON.parse(localStorage.getItem(`replies_${post.id}`) || '{}')
           
-          // 로컬 댓글 수
+          // 로컬 댓글 수 (답글 중복 카운팅 방지)
           let localCommentCount = localComments.length
           
-          // 로컬 댓글의 답글 수
+          // 로컬 댓글의 답글 수만 카운팅 (apiCommentReplies와 중복 방지)
           localComments.forEach((comment: any) => {
             if (comment.replies && comment.replies.length > 0) {
               localCommentCount += comment.replies.length
             }
           })
           
-          // API 댓글의 답글 수
-          Object.values(apiCommentReplies).forEach((replies: any) => {
-            if (Array.isArray(replies)) {
-              localCommentCount += replies.length
-            }
-          })
+          // API 댓글의 답글은 이미 위에서 카운팅되므로 제거
+          // Object.values(apiCommentReplies).forEach((replies: any) => {
+          //   if (Array.isArray(replies)) {
+          //     localCommentCount += replies.length
+          //   }
+          // })
           
           if (localCommentCount > 0) {
             console.log(`Post ${post.title}: API comments=${post.comments}, localStorage comments=${localCommentCount}`)
