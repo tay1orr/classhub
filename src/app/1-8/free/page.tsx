@@ -23,6 +23,51 @@ export default function FreeBoardPage() {
     loadPosts()
   }, [])
 
+  // 클라이언트 사이드에서 localStorage 댓글 수 업데이트
+  useEffect(() => {
+    if (posts.length > 0) {
+      const timer = setTimeout(() => {
+        const updatedPosts = posts.map((post: any) => {
+          try {
+            const localComments = JSON.parse(localStorage.getItem(`comments_${post.id}`) || '[]')
+            const apiCommentReplies = JSON.parse(localStorage.getItem(`replies_${post.id}`) || '{}')
+            
+            let localCommentCount = localComments.length
+            
+            localComments.forEach((comment: any) => {
+              if (comment.replies && comment.replies.length > 0) {
+                localCommentCount += comment.replies.length
+              }
+            })
+            
+            Object.values(apiCommentReplies).forEach((replies: any) => {
+              if (Array.isArray(replies)) {
+                localCommentCount += replies.length
+              }
+            })
+            
+            if (localCommentCount > 0 && post.comments === (post.originalComments || post.comments)) {
+              return {
+                ...post,
+                originalComments: post.originalComments || post.comments,
+                comments: (post.originalComments || post.comments) + localCommentCount
+              }
+            }
+            return post
+          } catch (error) {
+            return post
+          }
+        })
+        
+        if (JSON.stringify(updatedPosts) !== JSON.stringify(posts)) {
+          setPosts(updatedPosts)
+        }
+      }, 100)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [posts.length])
+
   const loadPosts = async () => {
     try {
       const response = await fetch('/api/posts')
@@ -32,33 +77,40 @@ export default function FreeBoardPage() {
         // 자유게시판 게시글만 필터링
         const freePosts = data.posts.filter((post: any) => post.board === 'free')
         
-        // localStorage의 댓글과 답글도 포함해서 댓글 수 계산
-        const postsWithLocalComments = freePosts.map((post: any) => {
-          const localComments = JSON.parse(localStorage.getItem(`comments_${post.id}`) || '[]')
-          const apiCommentReplies = JSON.parse(localStorage.getItem(`replies_${post.id}`) || '{}')
-          
-          // 로컬 댓글 수
-          let localCommentCount = localComments.length
-          
-          // 로컬 댓글의 답글 수
-          localComments.forEach((comment: any) => {
-            if (comment.replies && comment.replies.length > 0) {
-              localCommentCount += comment.replies.length
+        // 클라이언트 사이드에서만 localStorage 처리
+        let postsWithLocalComments = freePosts
+        if (typeof window !== 'undefined') {
+          postsWithLocalComments = freePosts.map((post: any) => {
+            try {
+              const localComments = JSON.parse(localStorage.getItem(`comments_${post.id}`) || '[]')
+              const apiCommentReplies = JSON.parse(localStorage.getItem(`replies_${post.id}`) || '{}')
+              
+              // 로컬 댓글 수
+              let localCommentCount = localComments.length
+              
+              // 로컬 댓글의 답글 수
+              localComments.forEach((comment: any) => {
+                if (comment.replies && comment.replies.length > 0) {
+                  localCommentCount += comment.replies.length
+                }
+              })
+              
+              // API 댓글의 답글 수
+              Object.values(apiCommentReplies).forEach((replies: any) => {
+                if (Array.isArray(replies)) {
+                  localCommentCount += replies.length
+                }
+              })
+              
+              return {
+                ...post,
+                comments: post.comments + localCommentCount
+              }
+            } catch (error) {
+              return post
             }
           })
-          
-          // API 댓글의 답글 수
-          Object.values(apiCommentReplies).forEach((replies: any) => {
-            if (Array.isArray(replies)) {
-              localCommentCount += replies.length
-            }
-          })
-          
-          return {
-            ...post,
-            comments: post.comments + localCommentCount
-          }
-        })
+        }
         
         // 공지사항을 먼저, 그 다음 최신순으로 정렬
         postsWithLocalComments.sort((a: any, b: any) => {
@@ -302,12 +354,10 @@ export default function FreeBoardPage() {
                         <Link href={`/1-8/free/${post.id}`} onClick={(e) => isSelectMode && e.preventDefault()}>
                           <h3 className={`text-lg font-semibold cursor-pointer flex items-center gap-2 ${!isSelectMode ? 'hover:text-blue-600' : 'text-gray-700'}`}>
                             {post.title}
-                            {post.comments && post.comments > 0 && (
-                              <span className="flex items-center gap-1 text-blue-500 text-sm">
-                                <MessageSquare className="h-3 w-3" />
-                                {post.comments}
-                              </span>
-                            )}
+                            <span className="flex items-center gap-1 text-blue-500 text-sm">
+                              <MessageSquare className="h-3 w-3" />
+                              {post.comments || 0}
+                            </span>
                           </h3>
                         </Link>
                         <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
