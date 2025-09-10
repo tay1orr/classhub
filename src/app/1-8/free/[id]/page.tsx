@@ -376,8 +376,6 @@ export default function PostDetailPage() {
     }
   }
 
-  const canEdit = user && post && user.id === post.authorId
-
   // 댓글 삭제 함수
   const handleDeleteComment = async (commentId: string) => {
     if (!user) {
@@ -406,9 +404,8 @@ export default function PostDetailPage() {
         const updatedComments = localComments.filter((comment: any) => comment.id !== commentId)
         localStorage.setItem(`comments_${postId}`, JSON.stringify(updatedComments))
         
-        // 게시글 다시 로드
-        await loadPost()
-        alert('댓글이 삭제되었습니다.')
+        // 페이지 새로고침
+        window.location.reload()
       } else {
         const result = await response.json()
         throw new Error(result.error || '댓글 삭제에 실패했습니다.')
@@ -418,6 +415,8 @@ export default function PostDetailPage() {
       alert('댓글 삭제 중 오류가 발생했습니다.')
     }
   }
+
+  const canEdit = user && post && user.id === post.authorId
   const canDelete = user && post && (user.id === post.authorId || isAdmin(user))
 
   if (isLoading) {
