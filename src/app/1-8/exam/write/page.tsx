@@ -75,7 +75,8 @@ export default function WriteExamPage() {
       }
       
       alert('게시글이 등록되었습니다!')
-      window.location.href = '/1-8/exam'
+      // 강제 새로고침으로 최신 데이터 로드
+      window.location.href = `/1-8/exam?refresh=${Date.now()}`
     } catch (error) {
       alert('게시글 등록 중 오류가 발생했습니다.')
     } finally {

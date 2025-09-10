@@ -36,10 +36,18 @@ export default function ClassroomPage() {
     // API에서 실제 게시글 가져오기
     const fetchPosts = async () => {
       try {
-        const response = await fetch('/api/posts');
+        // 캐시 우회를 위해 timestamp 추가
+        const timestamp = new Date().getTime()
+        const response = await fetch(`/api/posts?t=${timestamp}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
         const data = await response.json();
         const storedPosts = data.posts || [];
         
+        console.log('Main page posts loaded:', storedPosts.length);
         updatePostsData(storedPosts);
       } catch (error) {
         console.error('Failed to fetch posts:', error);

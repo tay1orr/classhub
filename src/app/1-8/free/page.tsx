@@ -75,7 +75,14 @@ export default function FreeBoardPage() {
 
   const loadPosts = async () => {
     try {
-      const response = await fetch('/api/posts')
+      // 캐시 우회를 위해 timestamp 추가
+      const timestamp = new Date().getTime()
+      const response = await fetch(`/api/posts?t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
       const data = await response.json()
       
       if (response.ok) {
@@ -95,6 +102,7 @@ export default function FreeBoardPage() {
         })
         
         setPosts(freePosts)
+        console.log('Free posts loaded:', freePosts.length)
       }
     } catch (error) {
       console.error('Failed to load posts:', error)

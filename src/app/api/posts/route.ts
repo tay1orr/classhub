@@ -5,6 +5,8 @@ export async function GET() {
   try {
     console.log('API: Starting posts fetch...');
     
+    // 캐시 비활성화 헤더 추가
+    
     const posts = await prisma.post.findMany({
       where: {
         deletedAt: null // 삭제되지 않은 게시글만 조회
@@ -63,7 +65,14 @@ export async function GET() {
       comments: post.comments.length
     }));
 
-    return NextResponse.json({ posts: postsWithCounts });
+    const response = NextResponse.json({ posts: postsWithCounts });
+    
+    // 캐시 비활성화 헤더 설정
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
   } catch (error: any) {
     console.error('API Error details:', {
       message: error?.message || 'Unknown error',

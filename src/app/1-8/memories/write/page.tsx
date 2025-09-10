@@ -116,7 +116,8 @@ export default function WriteMemoryPage() {
       }
 
       alert('추억이 성공적으로 등록되었습니다! 💝')
-      router.push('/1-8/memories')
+      // 강제 새로고침으로 최신 데이터 로드
+      window.location.href = `/1-8/memories?refresh=${Date.now()}`
     } catch (error) {
       console.error('Error creating post:', error)
       alert('추억 등록 중 오류가 발생했습니다.')
