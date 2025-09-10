@@ -73,11 +73,14 @@ export default function ClassroomPage() {
             }
           })
           
-          if (localCommentCount > 0 && post.comments === (post.originalComments || post.comments)) {
-            return {
-              ...post,
-              originalComments: post.originalComments || post.comments,
-              comments: (post.originalComments || post.comments) + localCommentCount
+          if (localCommentCount > 0) {
+            console.log(`Post ${post.title}: API comments=${post.comments}, localStorage comments=${localCommentCount}`)
+            if (post.comments === (post.originalComments || post.comments)) {
+              return {
+                ...post,
+                originalComments: post.originalComments || post.comments,
+                comments: (post.originalComments || post.comments) + localCommentCount
+              }
             }
           }
           return post

@@ -108,12 +108,13 @@ export async function POST(
       }
     });
 
+    const userCurrentLike = updatedPost?.likes[0]?.isLike
+    
     return NextResponse.json({
       success: true,
-      post: updatedPost,
       likes: updatedPost?.likesCount || 0,
       dislikes: updatedPost?.dislikesCount || 0,
-      userLike: updatedPost?.likes[0]?.isLike ?? null
+      userLike: userCurrentLike === true ? true : userCurrentLike === false ? false : null
     });
 
   } catch (error: any) {

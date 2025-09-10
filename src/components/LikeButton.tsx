@@ -120,13 +120,18 @@ export function LikeButton({
         throw new Error(result.error || '좋아요/싫어요 처리에 실패했습니다.')
       }
 
-      // 서버 응답으로 정확한 값 업데이트
-      setLikes(result.likes)
-      setDislikes(result.dislikes)
-      setUserLike(result.userLike)
+      // 서버 응답으로 정확한 값 업데이트 (타입 체크 추가)
+      const serverLikes = typeof result.likes === 'number' ? result.likes : 0
+      const serverDislikes = typeof result.dislikes === 'number' ? result.dislikes : 0
+      const serverUserLike = result.userLike === true ? true : result.userLike === false ? false : null
+      
+      setLikes(serverLikes)
+      setDislikes(serverDislikes)
+      setUserLike(serverUserLike)
       
       // localStorage 재저장
-      userLikes[postId] = result.userLike
+      const userLikes = JSON.parse(localStorage.getItem(`userLikes_${user.id}`) || '{}')
+      userLikes[postId] = serverUserLike
       localStorage.setItem(`userLikes_${user.id}`, JSON.stringify(userLikes))
     } catch (error) {
       console.error('Like/dislike error:', error)
