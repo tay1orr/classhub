@@ -634,10 +634,10 @@ export default function PostDetailPage() {
                       {comment.replies && comment.replies.length > 0 && (
                         <div className="ml-8 mt-3 space-y-3">
                           {comment.replies.map((reply: any, replyIndex: number) => (
-                            <div key={reply.id || replyIndex} className="bg-white p-3 rounded-lg border-l-4 border-green-200 shadow-sm">
+                            <div key={reply.id || replyIndex} className="bg-white p-3 rounded-lg border-l-4 border-gray-300 shadow-sm">
                               <div className="flex items-center gap-3 mb-2">
-                                <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                                  <span className="text-green-600 font-semibold text-xs">
+                                <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
+                                  <span className="text-gray-600 font-semibold text-xs">
                                     {reply.author ? reply.author.charAt(0) : 'U'}
                                   </span>
                                 </div>

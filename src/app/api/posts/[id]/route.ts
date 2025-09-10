@@ -9,8 +9,11 @@ export async function GET(
   try {
     const postId = params.id;
 
-    const post = await prisma.post.findUnique({
-      where: { id: postId },
+    const post = await prisma.post.findFirst({
+      where: { 
+        id: postId,
+        deletedAt: null // 삭제되지 않은 게시글만 조회
+      },
       select: {
         id: true,
         title: true,

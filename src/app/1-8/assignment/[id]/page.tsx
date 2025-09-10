@@ -532,11 +532,11 @@ export default function AssignmentPostDetailPage() {
                   {post.comments.map((comment: any, index: number) => (
                     <div key={comment.id || index}>
                       {/* 메인 댓글 */}
-                      <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-green-200">
+                      <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-200">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                              <span className="text-green-600 font-semibold text-sm">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <span className="text-blue-600 font-semibold text-sm">
                                 {comment.author ? comment.author.charAt(0) : 'U'}
                               </span>
                             </div>
@@ -544,7 +544,7 @@ export default function AssignmentPostDetailPage() {
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-sm">{comment.author || '익명'}</span>
                                 {comment.authorId === post.authorId && (
-                                  <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">
+                                  <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
                                     글쓴이
                                   </span>
                                 )}
@@ -629,10 +629,10 @@ export default function AssignmentPostDetailPage() {
                       {comment.replies && comment.replies.length > 0 && (
                         <div className="ml-8 mt-3 space-y-3">
                           {comment.replies.map((reply: any, replyIndex: number) => (
-                            <div key={reply.id || replyIndex} className="bg-white p-3 rounded-lg border-l-4 border-orange-200 shadow-sm">
+                            <div key={reply.id || replyIndex} className="bg-white p-3 rounded-lg border-l-4 border-gray-300 shadow-sm">
                               <div className="flex items-center gap-3 mb-2">
-                                <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
-                                  <span className="text-orange-600 font-semibold text-xs">
+                                <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
+                                  <span className="text-gray-600 font-semibold text-xs">
                                     {reply.author ? reply.author.charAt(0) : 'U'}
                                   </span>
                                 </div>
@@ -640,7 +640,7 @@ export default function AssignmentPostDetailPage() {
                                   <div className="flex items-center gap-2">
                                     <span className="font-medium text-xs">{reply.author || '익명'}</span>
                                     {reply.authorId === post.authorId && (
-                                      <span className="bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full" style={{fontSize: '10px'}}>
+                                      <span className="bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full" style={{fontSize: '10px'}}>
                                         글쓴이
                                       </span>
                                     )}

@@ -6,6 +6,9 @@ export async function GET() {
     console.log('API: Starting posts fetch...');
     
     const posts = await prisma.post.findMany({
+      where: {
+        deletedAt: null // 삭제되지 않은 게시글만 조회
+      },
       select: {
         id: true,
         title: true,
