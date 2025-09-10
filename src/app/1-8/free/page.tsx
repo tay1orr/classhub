@@ -32,8 +32,17 @@ export default function FreeBoardPage() {
         // 자유게시판 게시글만 필터링
         const freePosts = data.posts.filter((post: any) => post.board === 'free')
         
+        // localStorage의 댓글도 포함해서 댓글 수 계산
+        const postsWithLocalComments = freePosts.map((post: any) => {
+          const localComments = JSON.parse(localStorage.getItem(`comments_${post.id}`) || '[]')
+          return {
+            ...post,
+            comments: post.comments + localComments.length
+          }
+        })
+        
         // 공지사항을 먼저, 그 다음 최신순으로 정렬
-        freePosts.sort((a: any, b: any) => {
+        postsWithLocalComments.sort((a: any, b: any) => {
           // 공지사항 우선
           if (a.isPinned && !b.isPinned) return -1
           if (!a.isPinned && b.isPinned) return 1
@@ -42,7 +51,7 @@ export default function FreeBoardPage() {
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         })
         
-        setPosts(freePosts)
+        setPosts(postsWithLocalComments)
       }
     } catch (error) {
       console.error('Failed to load posts:', error)

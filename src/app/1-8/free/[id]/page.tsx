@@ -59,6 +59,14 @@ export default function PostDetailPage() {
               index === self.findIndex(c => c.id === comment.id)
             )
             
+            // localStorage에서 replies 정보도 복원
+            uniqueComments.forEach(comment => {
+              const localComment = localComments.find((lc: any) => lc.id === comment.id)
+              if (localComment && localComment.replies) {
+                comment.replies = localComment.replies
+              }
+            })
+            
             uniqueComments.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
             
             setPost({
@@ -159,10 +167,19 @@ export default function PostDetailPage() {
         return comment
       })
 
-      // localStorage에 업데이트된 댓글들 저장
-      const apiComments = (post.comments || []).filter((c: any) => !JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]').some((local: any) => local.id === c.id))
-      const localOnlyComments = updatedComments.filter((c: any) => !apiComments.some((api: any) => api.id === c.id))
-      localStorage.setItem(`comments_${postId}`, JSON.stringify(localOnlyComments))
+      // localStorage에 업데이트된 댓글들 저장 (replies 포함)
+      const currentLocal = JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]')
+      const mergedLocal = currentLocal.map((local: any) => {
+        const updated = updatedComments.find((c: any) => c.id === local.id)
+        return updated ? { ...local, replies: updated.replies || local.replies || [] } : local
+      })
+      
+      // 새로운 로컬 전용 댓글 추가
+      const apiCommentIds = (post.comments || []).map((c: any) => c.id)
+      const newLocalComments = updatedComments.filter((c: any) => !apiCommentIds.includes(c.id) && !currentLocal.some((local: any) => local.id === c.id))
+      
+      const finalLocalComments = [...mergedLocal, ...newLocalComments]
+      localStorage.setItem(`comments_${postId}`, JSON.stringify(finalLocalComments))
       
       const updatedPost = {
         ...post,
@@ -229,10 +246,19 @@ export default function PostDetailPage() {
       return comment
     })
 
-    // localStorage에도 업데이트
-    const apiComments = updatedComments.filter((c: any) => c.createdAt && new Date(c.createdAt) < new Date('2025-09-09T10:00:00.000Z')) // API에서 온 댓글들 (임시 구분법)
-    const localOnlyComments = updatedComments.filter((c: any) => !apiComments.some((api: any) => api.id === c.id))
-    localStorage.setItem(`comments_${postId}`, JSON.stringify(localOnlyComments))
+    // localStorage에도 업데이트 (replies 포함)
+    const currentLocal = JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]')
+    const mergedLocal = currentLocal.map((local: any) => {
+      const updated = updatedComments.find((c: any) => c.id === local.id)
+      return updated ? { ...updated } : local
+    })
+    
+    // 새로운 로컬 전용 댓글 추가
+    const apiCommentIds = (post.comments || []).map((c: any) => c.id)
+    const newLocalComments = updatedComments.filter((c: any) => !apiCommentIds.includes(c.id) && !currentLocal.some((local: any) => local.id === c.id))
+    
+    const finalLocalComments = [...mergedLocal, ...newLocalComments]
+    localStorage.setItem(`comments_${postId}`, JSON.stringify(finalLocalComments))
     
     setPost((prev: any) => ({ ...prev, comments: updatedComments }))
   }
