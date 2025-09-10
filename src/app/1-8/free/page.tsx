@@ -32,12 +32,31 @@ export default function FreeBoardPage() {
         // 자유게시판 게시글만 필터링
         const freePosts = data.posts.filter((post: any) => post.board === 'free')
         
-        // localStorage의 댓글도 포함해서 댓글 수 계산
+        // localStorage의 댓글과 답글도 포함해서 댓글 수 계산
         const postsWithLocalComments = freePosts.map((post: any) => {
           const localComments = JSON.parse(localStorage.getItem(`comments_${post.id}`) || '[]')
+          const apiCommentReplies = JSON.parse(localStorage.getItem(`replies_${post.id}`) || '{}')
+          
+          // 로컬 댓글 수
+          let localCommentCount = localComments.length
+          
+          // 로컬 댓글의 답글 수
+          localComments.forEach((comment: any) => {
+            if (comment.replies && comment.replies.length > 0) {
+              localCommentCount += comment.replies.length
+            }
+          })
+          
+          // API 댓글의 답글 수
+          Object.values(apiCommentReplies).forEach((replies: any) => {
+            if (Array.isArray(replies)) {
+              localCommentCount += replies.length
+            }
+          })
+          
           return {
             ...post,
-            comments: post.comments + localComments.length
+            comments: post.comments + localCommentCount
           }
         })
         

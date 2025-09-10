@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { ArrowLeft, Send, MessageCircle, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { getCurrentUser } from '@/lib/simple-auth'
+import { LikeButton } from '@/components/LikeButton'
 
 export default function PostDetailPage() {
   const [post, setPost] = useState<any>(null)
@@ -60,10 +61,16 @@ export default function PostDetailPage() {
             )
             
             // localStorage에서 replies 정보도 복원
+            const apiCommentReplies = JSON.parse(localStorage.getItem(`replies_${postId}`) || '{}')
             uniqueComments.forEach(comment => {
+              // 로컬 댓글의 replies 복원
               const localComment = localComments.find((lc: any) => lc.id === comment.id)
               if (localComment && localComment.replies) {
                 comment.replies = localComment.replies
+              }
+              // API 댓글의 replies도 복원
+              else if (apiCommentReplies[comment.id]) {
+                comment.replies = apiCommentReplies[comment.id]
               }
             })
             
@@ -167,19 +174,29 @@ export default function PostDetailPage() {
         return comment
       })
 
-      // localStorage에 업데이트된 댓글들 저장 (replies 포함)
+      // localStorage에 모든 댓글의 replies 정보 저장
       const currentLocal = JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]')
+      
+      // 로컬 전용 댓글 업데이트
       const mergedLocal = currentLocal.map((local: any) => {
         const updated = updatedComments.find((c: any) => c.id === local.id)
-        return updated ? { ...local, replies: updated.replies || local.replies || [] } : local
+        return updated ? updated : local
       })
       
       // 새로운 로컬 전용 댓글 추가
       const apiCommentIds = (post.comments || []).map((c: any) => c.id)
       const newLocalComments = updatedComments.filter((c: any) => !apiCommentIds.includes(c.id) && !currentLocal.some((local: any) => local.id === c.id))
       
-      const finalLocalComments = [...mergedLocal, ...newLocalComments]
-      localStorage.setItem(`comments_${postId}`, JSON.stringify(finalLocalComments))
+      // API 댓글의 replies도 별도로 저장
+      const apiCommentReplies = JSON.parse(localStorage.getItem(`replies_${postId}`) || '{}')
+      updatedComments.forEach((comment: any) => {
+        if (apiCommentIds.includes(comment.id) && comment.replies && comment.replies.length > 0) {
+          apiCommentReplies[comment.id] = comment.replies
+        }
+      })
+      
+      localStorage.setItem(`comments_${postId}`, JSON.stringify([...mergedLocal, ...newLocalComments]))
+      localStorage.setItem(`replies_${postId}`, JSON.stringify(apiCommentReplies))
       
       const updatedPost = {
         ...post,
@@ -250,15 +267,23 @@ export default function PostDetailPage() {
     const currentLocal = JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]')
     const mergedLocal = currentLocal.map((local: any) => {
       const updated = updatedComments.find((c: any) => c.id === local.id)
-      return updated ? { ...updated } : local
+      return updated ? updated : local
     })
     
     // 새로운 로컬 전용 댓글 추가
     const apiCommentIds = (post.comments || []).map((c: any) => c.id)
     const newLocalComments = updatedComments.filter((c: any) => !apiCommentIds.includes(c.id) && !currentLocal.some((local: any) => local.id === c.id))
     
-    const finalLocalComments = [...mergedLocal, ...newLocalComments]
-    localStorage.setItem(`comments_${postId}`, JSON.stringify(finalLocalComments))
+    // API 댓글의 replies도 별도로 저장
+    const apiCommentReplies = JSON.parse(localStorage.getItem(`replies_${postId}`) || '{}')
+    updatedComments.forEach((comment: any) => {
+      if (apiCommentIds.includes(comment.id) && comment.replies && comment.replies.length > 0) {
+        apiCommentReplies[comment.id] = comment.replies
+      }
+    })
+    
+    localStorage.setItem(`comments_${postId}`, JSON.stringify([...mergedLocal, ...newLocalComments]))
+    localStorage.setItem(`replies_${postId}`, JSON.stringify(apiCommentReplies))
     
     setPost((prev: any) => ({ ...prev, comments: updatedComments }))
   }
@@ -296,6 +321,16 @@ export default function PostDetailPage() {
             </div>
             <div className="whitespace-pre-wrap">
               {post.content}
+            </div>
+            
+            {/* 게시글 좋아요 */}
+            <div className="mt-6 pt-4 border-t">
+              <LikeButton
+                postId={post.id}
+                initialLikes={post.likes || 0}
+                initialDislikes={post.dislikes || 0}
+                size="default"
+              />
             </div>
             
             <div className="mt-8">
