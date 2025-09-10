@@ -51,9 +51,8 @@ export default function ClassroomPage() {
         updatePostsData(storedPosts);
       } catch (error) {
         console.error('Failed to fetch posts:', error);
-        // 실패시 localStorage 폴백
-        const storedPosts = JSON.parse(localStorage.getItem('classhub_posts') || '[]');
-        updatePostsData(storedPosts);
+        // API 실패시 빈 배열로 처리 (localStorage 폴백 제거)
+        updatePostsData([]);
       }
     };
     
@@ -169,13 +168,24 @@ export default function ClassroomPage() {
     }
     
     fetchPosts()
+    
+    // 페이지 포커스 시 데이터 새로고침
+    const handleFocus = () => {
+      console.log('Page focused, refreshing data...');
+      fetchPosts();
+    }
+    
+    window.addEventListener('focus', handleFocus);
 
     // 시간 업데이트를 위한 interval 설정
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date())
     }, 60000) // 1분마다 업데이트
 
-    return () => clearInterval(timeInterval)
+    return () => {
+      clearInterval(timeInterval);
+      window.removeEventListener('focus', handleFocus);
+    }
   }, [])
 
   const formatTime = (dateString: string) => {
