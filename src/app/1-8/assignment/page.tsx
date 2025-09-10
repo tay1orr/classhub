@@ -321,10 +321,12 @@ export default function AssignmentBoardPage() {
                         <Link href={`/1-8/assignment/${post.id}`} onClick={(e) => isSelectMode && e.preventDefault()}>
                           <h3 className={`text-lg font-semibold cursor-pointer flex items-center gap-2 ${!isSelectMode ? 'hover:text-green-600' : 'text-gray-700'}`}>
                             {post.title}
-                            <span className="flex items-center gap-1 text-blue-500 text-sm">
-                              <MessageSquare className="h-3 w-3" />
-                              {post.comments || 0}
-                            </span>
+                            {(post.comments || 0) > 0 && (
+                              <span className="flex items-center gap-1 text-blue-500 text-sm">
+                                <MessageSquare className="h-3 w-3" />
+                                {post.comments}
+                              </span>
+                            )}
                           </h3>
                         </Link>
                         <p className="text-muted-foreground text-sm mt-1 line-clamp-2">

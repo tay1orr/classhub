@@ -245,8 +245,8 @@ export default function ExamBoardPage() {
       </div>
 
       <div className="flex items-center gap-4">
-        <Link href="/1-6" className="text-blue-600 hover:underline">
-          ← 1-6 홈으로
+        <Link href="/1-8" className="text-blue-600 hover:underline">
+          ← 1-8 홈으로
         </Link>
         <div className="text-sm text-gray-500">
           총 {filteredPosts.length}개의 게시글
