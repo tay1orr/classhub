@@ -50,8 +50,40 @@ export default function ClassroomPage() {
     };
     
     const updatePostsData = (storedPosts: any[]) => {
+      // localStorage 댓글 수를 반영한 게시글 업데이트
+      const postsWithLocalComments = storedPosts.map((post: any) => {
+        try {
+          const localComments = JSON.parse(localStorage.getItem(`comments_${post.id}`) || '[]')
+          const apiCommentReplies = JSON.parse(localStorage.getItem(`replies_${post.id}`) || '{}')
+          
+          // 로컬 댓글 수
+          let localCommentCount = localComments.length
+          
+          // 로컬 댓글의 답글 수
+          localComments.forEach((comment: any) => {
+            if (comment.replies && comment.replies.length > 0) {
+              localCommentCount += comment.replies.length
+            }
+          })
+          
+          // API 댓글의 답글 수
+          Object.values(apiCommentReplies).forEach((replies: any) => {
+            if (Array.isArray(replies)) {
+              localCommentCount += replies.length
+            }
+          })
+          
+          return {
+            ...post,
+            comments: post.comments + localCommentCount
+          }
+        } catch (error) {
+          return post
+        }
+      })
+
       // 공지사항 필터링 (isPinned가 true인 모든 게시글)
-      const pinned = storedPosts
+      const pinned = postsWithLocalComments
         .filter((post: any) => post.isPinned === true)
         .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 5) // 최신 5개
@@ -66,16 +98,16 @@ export default function ClassroomPage() {
       
       setBoardNotices(pinned)
       
-      const freePosts = storedPosts.filter((post: any) => post.board === 'free')
+      const freePosts = postsWithLocalComments.filter((post: any) => post.board === 'free')
         .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 5)
-      const assignmentPosts = storedPosts.filter((post: any) => post.board === 'assignment')
+      const assignmentPosts = postsWithLocalComments.filter((post: any) => post.board === 'assignment')
         .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 5)
-      const examPosts = storedPosts.filter((post: any) => post.board === 'exam')
+      const examPosts = postsWithLocalComments.filter((post: any) => post.board === 'exam')
         .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 5)
-      const memoryPostsData = storedPosts.filter((post: any) => post.board === 'memories')
+      const memoryPostsData = postsWithLocalComments.filter((post: any) => post.board === 'memories')
         .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 3)
       
@@ -98,7 +130,7 @@ export default function ClassroomPage() {
       setMemoryPosts(memoryPostsData)
 
       // HOT 게시물 생성 (조회수 기준 상위 3개)
-      const allPosts = [...storedPosts]
+      const allPosts = [...postsWithLocalComments]
       // 기본 게시물도 추가 (조회수가 있을 경우)
       const defaultPostsWithBoard = [
         ...recentPosts.free.map((p: any) => ({ ...p, board: 'free', boardColor: 'bg-blue-500' })),
@@ -358,12 +390,10 @@ export default function ClassroomPage() {
                 <div className="space-y-1 hover:bg-gray-50 p-2 rounded-md transition-colors">
                   <div className="font-medium text-sm hover:text-blue-600 cursor-pointer flex items-center gap-2">
                     {post.title}
-                    {(post.comments || 0) > 0 && (
-                      <span className="flex items-center gap-1 text-blue-500 text-xs">
-                        <MessageSquare className="h-3 w-3" />
-                        {post.comments}
-                      </span>
-                    )}
+                    <span className="flex items-center gap-1 text-blue-500 text-xs">
+                      <MessageSquare className="h-3 w-3" />
+                      {post.comments || 0}
+                    </span>
                   </div>
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>{(post.anonymous || post.isAnonymous) ? '익명' : post.author}</span>
@@ -393,20 +423,18 @@ export default function ClassroomPage() {
             {dynamicPosts.assignment.map((post: any) => (
               <Link key={post.id} href={`/1-8/assignment/${post.id}`} className="block">
                 <div className="space-y-1 hover:bg-gray-50 p-2 rounded-md transition-colors">
-                  <div className="font-medium text-sm hover:text-green-600 cursor-pointer">
+                  <div className="font-medium text-sm hover:text-green-600 cursor-pointer flex items-center gap-2">
                     {post.title}
+                    <span className="flex items-center gap-1 text-blue-500 text-xs">
+                      <MessageSquare className="h-3 w-3" />
+                      {post.comments || 0}
+                    </span>
                   </div>
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>{(post.anonymous || post.isAnonymous) ? '익명' : post.author}</span>
                     <div className="flex items-center gap-2">
                       <span>{post.createdAt ? formatTime(post.createdAt) : post.time}</span>
                       <span>조회 {post.views || 0}</span>
-                      {(post.comments || 0) > 0 && (
-                        <span className="flex items-center gap-1 text-blue-500">
-                          <MessageSquare className="h-3 w-3" />
-                          {post.comments}
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -430,20 +458,18 @@ export default function ClassroomPage() {
             {dynamicPosts.exam.map((post: any) => (
               <Link key={post.id} href={`/1-8/exam/${post.id}`} className="block">
                 <div className="space-y-1 hover:bg-gray-50 p-2 rounded-md transition-colors">
-                  <div className="font-medium text-sm hover:text-purple-600 cursor-pointer">
+                  <div className="font-medium text-sm hover:text-purple-600 cursor-pointer flex items-center gap-2">
                     {post.title}
+                    <span className="flex items-center gap-1 text-blue-500 text-xs">
+                      <MessageSquare className="h-3 w-3" />
+                      {post.comments || 0}
+                    </span>
                   </div>
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>{(post.anonymous || post.isAnonymous) ? '익명' : post.author}</span>
                     <div className="flex items-center gap-2">
                       <span>{post.createdAt ? formatTime(post.createdAt) : post.time}</span>
                       <span>조회 {post.views || 0}</span>
-                      {(post.comments || 0) > 0 && (
-                        <span className="flex items-center gap-1 text-blue-500">
-                          <MessageSquare className="h-3 w-3" />
-                          {post.comments}
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>
