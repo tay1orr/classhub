@@ -377,6 +377,47 @@ export default function PostDetailPage() {
   }
 
   const canEdit = user && post && user.id === post.authorId
+
+  // 댓글 삭제 함수
+  const handleDeleteComment = async (commentId: string) => {
+    if (!user) {
+      alert('로그인이 필요합니다.')
+      return
+    }
+
+    if (!confirm('댓글을 삭제하시겠습니까?')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/comments/${commentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id
+        })
+      })
+
+      if (response.ok) {
+        // localStorage에서 댓글 제거
+        const localComments = JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]')
+        const updatedComments = localComments.filter((comment: any) => comment.id !== commentId)
+        localStorage.setItem(`comments_${postId}`, JSON.stringify(updatedComments))
+        
+        // 게시글 다시 로드
+        await loadPost()
+        alert('댓글이 삭제되었습니다.')
+      } else {
+        const result = await response.json()
+        throw new Error(result.error || '댓글 삭제에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Delete comment error:', error)
+      alert('댓글 삭제 중 오류가 발생했습니다.')
+    }
+  }
   const canDelete = user && post && (user.id === post.authorId || isAdmin(user))
 
   if (isLoading) {
@@ -595,6 +636,17 @@ export default function PostDetailPage() {
                               답글
                             </button>
                           )}
+                          
+                          {/* 댓글 삭제 버튼 */}
+                          {user && (user.id === comment.authorId || isAdmin(user)) && (
+                            <button
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              삭제
+                            </button>
+                          )}
                         </div>
                         
                         {/* 답글 작성 폼 */}
@@ -680,6 +732,17 @@ export default function PostDetailPage() {
                                   <ThumbsDown className="h-3 w-3" />
                                   {reply.dislikes || 0}
                                 </button>
+                                
+                                {/* 답글 삭제 버튼 */}
+                                {user && (user.id === reply.authorId || isAdmin(user)) && (
+                                  <button
+                                    onClick={() => handleDeleteComment(reply.id)}
+                                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition-colors"
+                                  >
+                                    <Trash2 className="h-2.5 w-2.5" />
+                                    삭제
+                                  </button>
+                                )}
                               </div>
                             </div>
                           ))}

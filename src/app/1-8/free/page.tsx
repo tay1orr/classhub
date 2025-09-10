@@ -152,19 +152,35 @@ export default function FreeBoardPage() {
     if (!confirm(`선택한 ${selectedPosts.length}개의 게시글을 삭제하시겠습니까?`)) return
 
     try {
-      // API를 통해 게시글 삭제
+      // API를 통해 게시글 삭제 (userId 포함)
       const deletePromises = selectedPosts.map(postId => 
-        fetch(`/api/posts/${postId}`, { method: 'DELETE' })
+        fetch(`/api/posts/${postId}`, { 
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userId: user.id
+          })
+        })
       )
       
-      await Promise.all(deletePromises)
+      const responses = await Promise.all(deletePromises)
       
-      // 상태 업데이트
-      setPosts(prev => prev.filter(p => !selectedPosts.includes(p.id.toString())))
+      // 실패한 삭제가 있는지 확인
+      const failedDeletes = responses.filter(res => !res.ok)
+      if (failedDeletes.length > 0) {
+        alert(`일부 게시글 삭제에 실패했습니다. (${failedDeletes.length}/${selectedPosts.length})`)
+      }
+      
+      // 게시글 목록 새로고침
+      await loadPosts()
+      
+      // 상태 초기화
       setSelectedPosts([])
       setIsSelectMode(false)
       
-      alert(`${selectedPosts.length}개의 게시글이 삭제되었습니다.`)
+      alert(`${selectedPosts.length - failedDeletes.length}개의 게시글이 삭제되었습니다.`)
     } catch (error) {
       alert('게시글 삭제 중 오류가 발생했습니다.')
     }
