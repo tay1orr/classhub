@@ -302,7 +302,7 @@ export default function FreeBoardPage() {
                         <Link href={`/1-8/free/${post.id}`} onClick={(e) => isSelectMode && e.preventDefault()}>
                           <h3 className={`text-lg font-semibold cursor-pointer flex items-center gap-2 ${!isSelectMode ? 'hover:text-blue-600' : 'text-gray-700'}`}>
                             {post.title}
-                            {(post.comments || 0) > 0 && (
+                            {post.comments && post.comments > 0 && (
                               <span className="flex items-center gap-1 text-blue-500 text-sm">
                                 <MessageSquare className="h-3 w-3" />
                                 {post.comments}

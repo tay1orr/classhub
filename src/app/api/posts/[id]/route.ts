@@ -107,22 +107,125 @@ export async function GET(
   }
 }
 
-export async function DELETE(
+export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
     const postId = params.id;
+    const { title, content, userId } = await request.json();
+
+    if (!title || !content || !userId) {
+      return NextResponse.json(
+        { error: 'Title, content, and userId are required' },
+        { status: 400 }
+      );
+    }
 
     // 게시글이 존재하는지 확인
     const post = await prisma.post.findUnique({
-      where: { id: postId }
+      where: { id: postId },
+      select: {
+        id: true,
+        authorId: true
+      }
     });
 
     if (!post) {
       return NextResponse.json(
         { error: 'Post not found' },
         { status: 404 }
+      );
+    }
+
+    // 작성자 권한 확인
+    if (post.authorId !== userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Only the author can edit this post' },
+        { status: 403 }
+      );
+    }
+
+    // 게시글 수정
+    const updatedPost = await prisma.post.update({
+      where: { id: postId },
+      data: {
+        title: title.trim(),
+        content: content.trim(),
+        updatedAt: new Date()
+      }
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Post updated successfully',
+      post: updatedPost
+    });
+
+  } catch (error: any) {
+    console.error('Update post error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update post: ' + error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const postId = params.id;
+    const { userId } = await request.json();
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'UserId is required' },
+        { status: 400 }
+      );
+    }
+
+    // 게시글과 사용자 정보 확인
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      select: {
+        id: true,
+        authorId: true
+      }
+    });
+
+    if (!post) {
+      return NextResponse.json(
+        { error: 'Post not found' },
+        { status: 404 }
+      );
+    }
+
+    // 사용자 정보 확인 (관리자 권한 체크)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true
+      }
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // 권한 확인: 작성자이거나 관리자여야 함
+    const isAdmin = user.email === 'admin@classhub.co.kr';
+    const isAuthor = post.authorId === userId;
+
+    if (!isAuthor && !isAdmin) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Only the author or admin can delete this post' },
+        { status: 403 }
       );
     }
 
