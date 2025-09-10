@@ -40,9 +40,9 @@ export function LikeButton({
   }, [postId])
 
   const handleLikeDislike = async (isLike: boolean) => {
-    // 중복 클릭 방지 (500ms)
+    // 중복 클릭 방지 (1500ms로 증가하여 확실히 방지)
     const now = Date.now()
-    if (now - lastClickTime < 500) return
+    if (now - lastClickTime < 1500) return
     setLastClickTime(now)
 
     const user = getCurrentUser()
@@ -120,9 +120,9 @@ export function LikeButton({
         throw new Error(result.error || '좋아요/싫어요 처리에 실패했습니다.')
       }
 
-      // 서버 응답으로 정확한 값 업데이트 (타입 체크 추가)
-      const serverLikes = typeof result.likes === 'number' ? result.likes : 0
-      const serverDislikes = typeof result.dislikes === 'number' ? result.dislikes : 0
+      // 서버 응답으로 정확한 값 업데이트 (타입 체크 + 음수 방지)
+      const serverLikes = typeof result.likes === 'number' ? Math.max(0, result.likes) : 0
+      const serverDislikes = typeof result.dislikes === 'number' ? Math.max(0, result.dislikes) : 0
       const serverUserLike = result.userLike === true ? true : result.userLike === false ? false : null
       
       setLikes(serverLikes)
