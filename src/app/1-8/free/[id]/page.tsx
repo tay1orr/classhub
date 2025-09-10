@@ -334,7 +334,7 @@ export default function PostDetailPage() {
             </div>
             
             <div className="mt-8">
-              <h3 className="font-semibold mb-4">댓글 {post.comments ? post.comments.length : 0}개</h3>
+              <h3 className="font-semibold mb-4">댓글 {post.comments ? post.comments.reduce((total: number, comment: any) => total + 1 + (comment.replies ? comment.replies.length : 0), 0) : 0}개</h3>
               
               {/* 댓글 작성 */}
               {user ? (
