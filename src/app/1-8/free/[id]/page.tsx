@@ -160,8 +160,8 @@ export default function PostDetailPage() {
       })
 
       // localStorage에 업데이트된 댓글들 저장
-      const apiComments = (post.comments || []).filter(c => !JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]').some((local: any) => local.id === c.id))
-      const localOnlyComments = updatedComments.filter(c => !apiComments.some((api: any) => api.id === c.id))
+      const apiComments = (post.comments || []).filter((c: any) => !JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]').some((local: any) => local.id === c.id))
+      const localOnlyComments = updatedComments.filter((c: any) => !apiComments.some((api: any) => api.id === c.id))
       localStorage.setItem(`comments_${postId}`, JSON.stringify(localOnlyComments))
       
       const updatedPost = {
@@ -230,8 +230,8 @@ export default function PostDetailPage() {
     })
 
     // localStorage에도 업데이트
-    const apiComments = updatedComments.filter(c => c.createdAt && new Date(c.createdAt) < new Date('2025-09-09T10:00:00.000Z')) // API에서 온 댓글들 (임시 구분법)
-    const localOnlyComments = updatedComments.filter(c => !apiComments.some((api: any) => api.id === c.id))
+    const apiComments = updatedComments.filter((c: any) => c.createdAt && new Date(c.createdAt) < new Date('2025-09-09T10:00:00.000Z')) // API에서 온 댓글들 (임시 구분법)
+    const localOnlyComments = updatedComments.filter((c: any) => !apiComments.some((api: any) => api.id === c.id))
     localStorage.setItem(`comments_${postId}`, JSON.stringify(localOnlyComments))
     
     setPost((prev: any) => ({ ...prev, comments: updatedComments }))
