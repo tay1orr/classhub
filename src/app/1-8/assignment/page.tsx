@@ -200,8 +200,8 @@ export default function AssignmentBoardPage() {
       </div>
 
       <div className="flex items-center gap-4">
-        <Link href="/1-6" className="text-blue-600 hover:underline">
-          ← 1-6 홈으로
+        <Link href="/1-8" className="text-blue-600 hover:underline">
+          ← 1-8 홈으로
         </Link>
         <div className="text-sm text-gray-500">
           총 {filteredPosts.length}개의 게시글
@@ -276,12 +276,10 @@ export default function AssignmentBoardPage() {
                         <Link href={`/1-8/assignment/${post.id}`} onClick={(e) => isSelectMode && e.preventDefault()}>
                           <h3 className={`text-lg font-semibold cursor-pointer flex items-center gap-2 ${!isSelectMode ? 'hover:text-green-600' : 'text-gray-700'}`}>
                             {post.title}
-                            {(post.comments || 0) > 0 && (
-                              <span className="flex items-center gap-1 text-blue-500 text-sm">
-                                <MessageSquare className="h-3 w-3" />
-                                {post.comments}
-                              </span>
-                            )}
+                            <span className="flex items-center gap-1 text-blue-500 text-sm">
+                              <MessageSquare className="h-3 w-3" />
+                              {post.comments || 0}
+                            </span>
                           </h3>
                         </Link>
                         <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
