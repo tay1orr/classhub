@@ -99,7 +99,14 @@ export async function GET(
       }))
     };
 
-    return NextResponse.json({ post: formattedPost });
+    const response = NextResponse.json({ post: formattedPost });
+    
+    // 캐시 비활성화 헤더 설정
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
 
   } catch (error: any) {
     console.error('Get post error:', error);

@@ -40,9 +40,12 @@ export default function AssignmentPostDetailPage() {
     
     const loadPost = async () => {
       try {
-        const response = await fetch(`/api/posts/${postId}`, {
+        // 캐시 우회를 위해 timestamp 추가
+        const timestamp = new Date().getTime()
+        const response = await fetch(`/api/posts/${postId}?t=${timestamp}`, {
+          cache: 'no-store',
           headers: {
-            'Cache-Control': 'max-age=30'
+            'Cache-Control': 'no-cache'
           }
         })
         

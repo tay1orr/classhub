@@ -42,10 +42,12 @@ export default function PostDetailPage() {
       try {
         // console.log('Loading post:', postId) // 불필요한 로깅 제거
         
-        const response = await fetch(`/api/posts/${postId}`, {
-          // 캐시 헤더 추가로 성능 개선
+        // 캐시 우회를 위해 timestamp 추가
+        const timestamp = new Date().getTime()
+        const response = await fetch(`/api/posts/${postId}?t=${timestamp}`, {
+          cache: 'no-store',
           headers: {
-            'Cache-Control': 'max-age=30'
+            'Cache-Control': 'no-cache'
           }
         })
         
