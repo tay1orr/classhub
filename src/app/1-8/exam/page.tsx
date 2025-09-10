@@ -25,6 +25,51 @@ export default function ExamBoardPage() {
     loadPosts()
   }, [])
 
+  // 클라이언트 사이드에서 localStorage 댓글 수 업데이트
+  useEffect(() => {
+    if (posts.length > 0) {
+      const timer = setTimeout(() => {
+        const updatedPosts = posts.map((post: any) => {
+          try {
+            const localComments = JSON.parse(localStorage.getItem(`comments_${post.id}`) || '[]')
+            const apiCommentReplies = JSON.parse(localStorage.getItem(`replies_${post.id}`) || '{}')
+            
+            let localCommentCount = localComments.length
+            
+            localComments.forEach((comment: any) => {
+              if (comment.replies && comment.replies.length > 0) {
+                localCommentCount += comment.replies.length
+              }
+            })
+            
+            Object.values(apiCommentReplies).forEach((replies: any) => {
+              if (Array.isArray(replies)) {
+                localCommentCount += replies.length
+              }
+            })
+            
+            if (localCommentCount > 0 && post.comments === (post.originalComments || post.comments)) {
+              return {
+                ...post,
+                originalComments: post.originalComments || post.comments,
+                comments: (post.originalComments || post.comments) + localCommentCount
+              }
+            }
+            return post
+          } catch (error) {
+            return post
+          }
+        })
+        
+        if (JSON.stringify(updatedPosts) !== JSON.stringify(posts)) {
+          setPosts(updatedPosts)
+        }
+      }, 100)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [posts.length])
+
   const loadPosts = async () => {
     try {
       const response = await fetch('/api/posts')

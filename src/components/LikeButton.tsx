@@ -26,6 +26,7 @@ export function LikeButton({
   const [dislikes, setDislikes] = useState(initialDislikes)
   const [userLike, setUserLike] = useState<boolean | null>(initialUserLike)
   const [isLoading, setIsLoading] = useState(false)
+  const [lastClickTime, setLastClickTime] = useState(0)
 
   useEffect(() => {
     const user = getCurrentUser()
@@ -39,6 +40,11 @@ export function LikeButton({
   }, [postId])
 
   const handleLikeDislike = async (isLike: boolean) => {
+    // 중복 클릭 방지 (500ms)
+    const now = Date.now()
+    if (now - lastClickTime < 500) return
+    setLastClickTime(now)
+
     const user = getCurrentUser()
     if (!user) {
       alert('로그인이 필요합니다.')
@@ -94,8 +100,9 @@ export function LikeButton({
     userLikes[postId] = newUserLike
     localStorage.setItem(`userLikes_${user.id}`, JSON.stringify(userLikes))
 
-    setIsLoading(true)
+    // 백그라운드에서 서버 동기화 (UI 블로킹 없음)
     try {
+      setIsLoading(true)
       const response = await fetch(`/api/posts/${postId}/like`, {
         method: 'POST',
         headers: {
@@ -157,7 +164,6 @@ export function LikeButton({
         variant={userLike === true ? 'default' : 'outline'}
         size={size}
         onClick={() => handleLikeDislike(true)}
-        disabled={isLoading}
         className={`${buttonSizeClass} ${
           userLike === true 
             ? 'bg-blue-500 hover:bg-blue-600 text-white border-blue-500' 
@@ -172,7 +178,6 @@ export function LikeButton({
         variant={userLike === false ? 'default' : 'outline'}
         size={size}
         onClick={() => handleLikeDislike(false)}
-        disabled={isLoading}
         className={`${buttonSizeClass} ${
           userLike === false 
             ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
