@@ -33,9 +33,9 @@ export async function GET(request: Request) {
       };
     }
 
-    // 데이터베이스 연결 확인
-    await prisma.$queryRaw`SELECT 1`;
-    console.log('✅ 데이터베이스 연결 확인됨');
+    // 데이터베이스 연결 확인 제거 - 불필요한 쿼리
+    // await prisma.$queryRaw`SELECT 1`;
+    // console.log('✅ 데이터베이스 연결 확인됨');
     
     // 병렬로 게시글과 총 개수 조회 (성능 향상)
     const [posts, totalCount] = await Promise.all([
