@@ -139,25 +139,34 @@ export default function AdminPage() {
     setTimeout(() => setMessage(''), 3000)
   }
 
-  const handleApproveUser = async (userId: string, userName: string) => {
-    console.log(`🔄 승인 시작: ${userName} (${userId})`)
+  const handleApproveUser = async (userId: string, userName: string, retryCount = 0) => {
+    const maxRetries = 3;
+    console.log(`🔄 승인 시작: ${userName} (${userId}) - 시도 ${retryCount + 1}/${maxRetries + 1}`)
     setProcessingUserId(userId)
     
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30초 타임아웃
+      
       const response = await fetch(`/api/admin/users/${userId}/approve`, {
         method: 'PATCH',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
-          'Expires': '0'
+          'Expires': '0',
+          'X-Retry-Count': retryCount.toString()
         }
       })
       
+      clearTimeout(timeoutId);
+      
       console.log('📋 승인 응답 상태:', response.status, response.statusText)
+      console.log('📋 승인 응답 헤더:', Object.fromEntries(response.headers.entries()))
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`)
       }
       
       const result = await response.json()
@@ -167,25 +176,48 @@ export default function AdminPage() {
       
       if (result.success) {
         console.log('✅ 승인 성공 - 사용자 목록 새로고침 중...')
+        console.log('⏱️ API 처리 시간:', result.processingTime + 'ms')
         
-        // 강제 전체 새로고침만 수행 (로컬 상태 업데이트 제거)
+        // 강제 전체 새로고침 수행
         await loadUsers()
         
         // 추가 확인을 위해 잠시 후 한 번 더
         setTimeout(() => {
           console.log('🔄 승인 후 추가 새로고침...')
           loadUsers()
-        }, 1000)
+        }, 2000)
+        
+        // 성공 시 재시도 카운트 초기화
+        setProcessingUserId(null)
+        setTimeout(() => setMessage(''), 5000)
+        return;
       } else {
         console.error('❌ 승인 실패:', result.error)
+        throw new Error(result.error || '승인에 실패했습니다')
       }
     } catch (error: any) {
-      console.error('❌ 승인 오류:', error)
-      setMessage(`사용자 승인 중 오류가 발생했습니다: ${error.message}`)
+      console.error(`❌ 승인 오류 (시도 ${retryCount + 1}):`, error)
+      
+      // 재시도 로직
+      if (retryCount < maxRetries && !error.name?.includes('AbortError')) {
+        console.log(`🔄 ${3 - retryCount}초 후 재시도...`)
+        setMessage(`네트워크 오류 발생. ${3 - retryCount}초 후 재시도...`)
+        
+        setTimeout(() => {
+          handleApproveUser(userId, userName, retryCount + 1)
+        }, (3 - retryCount) * 1000)
+        return;
+      }
+      
+      // 최종 실패
+      const errorMessage = error.name === 'AbortError' 
+        ? '요청 시간이 초과되었습니다. 다시 시도해주세요.' 
+        : `사용자 승인 중 오류가 발생했습니다: ${error.message}`;
+      
+      setMessage(errorMessage)
+      setProcessingUserId(null)
+      setTimeout(() => setMessage(''), 8000)
     }
-    
-    setProcessingUserId(null)
-    setTimeout(() => setMessage(''), 5000)
   }
 
   const handleRejectUser = async (userId: string, userName: string) => {
