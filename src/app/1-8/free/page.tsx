@@ -87,12 +87,15 @@ export default function FreeBoardPage() {
 
   const loadPosts = async () => {
     try {
-      // 캐시 우회를 위해 timestamp 추가
+      // 강력한 캐시 우회를 위해 다중 timestamp 추가
       const timestamp = new Date().getTime()
-      const response = await fetch(`/api/posts?board=free&t=${timestamp}`, {
+      const random = Math.random()
+      const response = await fetch(`/api/posts?board=free&t=${timestamp}&r=${random}&v=${Date.now()}`, {
         cache: 'no-store',
         headers: {
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       })
       const data = await response.json()
@@ -193,8 +196,10 @@ export default function FreeBoardPage() {
         alert(`일부 게시글 삭제에 실패했습니다. (${failedDeletes.length}/${selectedPosts.length})`)
       }
       
-      // 게시글 목록 새로고침
+      // 게시글 목록 강제 새로고침 (여러 번 시도)
       await loadPosts()
+      setTimeout(() => loadPosts(), 1000)
+      setTimeout(() => loadPosts(), 3000)
       
       // 상태 초기화
       setSelectedPosts([])
