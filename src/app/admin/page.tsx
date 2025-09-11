@@ -168,17 +168,14 @@ export default function AdminPage() {
       if (result.success) {
         console.log('✅ 승인 성공 - 사용자 목록 새로고침 중...')
         
-        // 로컬 상태에서도 즉시 업데이트
-        setUsers(prevUsers => 
-          prevUsers.map(u => 
-            u.id === userId 
-              ? { ...u, isApproved: true } 
-              : u
-          )
-        )
-        
-        // API에서 새로고침도 병행
+        // 강제 전체 새로고침만 수행 (로컬 상태 업데이트 제거)
         await loadUsers()
+        
+        // 추가 확인을 위해 잠시 후 한 번 더
+        setTimeout(() => {
+          console.log('🔄 승인 후 추가 새로고침...')
+          loadUsers()
+        }, 1000)
       } else {
         console.error('❌ 승인 실패:', result.error)
       }
@@ -224,11 +221,14 @@ export default function AdminPage() {
       if (result.success) {
         console.log('✅ 거부 성공 - 사용자 목록 새로고침 중...')
         
-        // 로컬 상태에서도 즉시 제거
-        setUsers(prevUsers => prevUsers.filter(u => u.id !== userId))
-        
-        // API에서 새로고침도 병행
+        // 강제 전체 새로고침만 수행 (로컬 상태 업데이트 제거)
         await loadUsers()
+        
+        // 추가 확인을 위해 잠시 후 한 번 더
+        setTimeout(() => {
+          console.log('🔄 거부 후 추가 새로고침...')
+          loadUsers()
+        }, 1000)
       } else {
         console.error('❌ 거부 실패:', result.error)
       }
@@ -274,11 +274,14 @@ export default function AdminPage() {
       if (result.success) {
         console.log('✅ 삭제 성공 - 사용자 목록 새로고침 중...')
         
-        // 로컬 상태에서도 즉시 제거
-        setUsers(prevUsers => prevUsers.filter(u => u.id !== userId))
-        
-        // API에서 새로고침도 병행
+        // 강제 전체 새로고침만 수행 (로컬 상태 업데이트 제거)
         await loadUsers()
+        
+        // 추가 확인을 위해 잠시 후 한 번 더
+        setTimeout(() => {
+          console.log('🔄 삭제 후 추가 새로고침...')
+          loadUsers()
+        }, 1000)
       } else {
         console.error('❌ 삭제 실패:', result.error)
       }
