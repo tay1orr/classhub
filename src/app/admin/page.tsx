@@ -178,14 +178,8 @@ export default function AdminPage() {
         console.log('✅ 승인 성공 - 사용자 목록 새로고침 중...')
         console.log('⏱️ API 처리 시간:', result.processingTime + 'ms')
         
-        // 강제 전체 새로고침 수행
+        // 한 번만 새로고침
         await loadUsers()
-        
-        // 추가 확인을 위해 잠시 후 한 번 더
-        setTimeout(() => {
-          console.log('🔄 승인 후 추가 새로고침...')
-          loadUsers()
-        }, 2000)
         
         // 성공 시 재시도 카운트 초기화
         setProcessingUserId(null)
@@ -253,14 +247,8 @@ export default function AdminPage() {
       if (result.success) {
         console.log('✅ 거부 성공 - 사용자 목록 새로고침 중...')
         
-        // 강제 전체 새로고침만 수행 (로컬 상태 업데이트 제거)
+        // 한 번만 새로고침
         await loadUsers()
-        
-        // 추가 확인을 위해 잠시 후 한 번 더
-        setTimeout(() => {
-          console.log('🔄 거부 후 추가 새로고침...')
-          loadUsers()
-        }, 1000)
       } else {
         console.error('❌ 거부 실패:', result.error)
       }
