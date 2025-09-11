@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// Vercel serverless 캐시 무효화를 위한 동적 응답
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const startTime = Date.now();
   console.log('🚀 승인 API 호출 시작:', {
