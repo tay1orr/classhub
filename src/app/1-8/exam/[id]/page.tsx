@@ -30,47 +30,48 @@ export default function ExamPostDetailPage() {
   useEffect(() => {
     setUser(getCurrentUser())
     
-    // localStorage에서 게시글 찾기
-    const storedPosts = JSON.parse(localStorage.getItem('classhub_posts') || '[]')
-    const foundPost = storedPosts.find((p: any) => p.id.toString() === postId?.toString() && p.board === 'exam')
-    
-    if (foundPost) {
-      // 조회수 증가
-      foundPost.views = (foundPost.views || 0) + 1
+    // API에서 게시글 가져오기
+    const loadPost = async () => {
+      if (!postId) return
       
-      // localStorage 업데이트
-      const updatedPosts = storedPosts.map((p: any) => 
-        p.id.toString() === postId?.toString() ? foundPost : p
-      )
-      localStorage.setItem('classhub_posts', JSON.stringify(updatedPosts))
-      
-      setPost(foundPost)
-      setViewCount(foundPost.views)
-      setLikeCount(foundPost.likes || 0)
-    } else {
-      // 기본 게시글에서 찾기
-      const defaultPost = defaultPosts.find(p => p.id.toString() === postId?.toString())
-      if (defaultPost) {
-        setPost(defaultPost)
-        setViewCount(defaultPost.views || 0)
-        setLikeCount(defaultPost.likes || 0)
+      try {
+        const timestamp = new Date().getTime()
+        const response = await fetch(`/api/posts/${postId}?t=${timestamp}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          const postData = data.post
+          setPost(postData)
+          setViewCount(postData.views || 0)
+          setLikeCount(postData.likes || 0)
+          
+          // 댓글도 API에서 가져온 데이터 사용
+          setComments(postData.comments || [])
+          
+          // 댓글 좋아요/싫어요 상태 초기화
+          const initialLikes: {[key: string]: {liked: boolean, disliked: boolean}} = {}
+          const initialCounts: {[key: string]: {likes: number, dislikes: number}} = {}
+          ;(postData.comments || []).forEach((comment: any) => {
+            initialLikes[comment.id] = { liked: false, disliked: false }
+            initialCounts[comment.id] = { likes: comment.likes || 0, dislikes: comment.dislikes || 0 }
+          })
+          setCommentLikes(initialLikes)
+          setCommentCounts(initialCounts)
+        } else {
+          console.error('Failed to fetch post')
+        }
+      } catch (error) {
+        console.error('Error loading post:', error)
       }
     }
+    
+    loadPost()
 
-    // 댓글 로드
-    const storedComments = JSON.parse(localStorage.getItem('classhub_comments') || '[]')
-    const postComments = storedComments.filter((comment: any) => comment.postId === postId?.toString())
-    setComments(postComments)
-
-    // 댓글 좋아요/싫어요 상태 초기화
-    const initialLikes: {[key: string]: {liked: boolean, disliked: boolean}} = {}
-    const initialCounts: {[key: string]: {likes: number, dislikes: number}} = {}
-    postComments.forEach((comment: any) => {
-      initialLikes[comment.id] = { liked: false, disliked: false }
-      initialCounts[comment.id] = { likes: comment.likes || 0, dislikes: comment.dislikes || 0 }
-    })
-    setCommentLikes(initialLikes)
-    setCommentCounts(initialCounts)
 
     // 시간 업데이트를 위한 interval 설정
     const timeInterval = setInterval(() => {
@@ -295,7 +296,7 @@ export default function ExamPostDetailPage() {
       <div className="max-w-4xl mx-auto p-6">
         <div className="text-center">
           <p className="text-gray-500">게시글을 찾을 수 없습니다.</p>
-          <Link href="/1-8/free">
+          <Link href="/1-8/exam">
             <Button className="mt-4 bg-purple-600 hover:bg-purple-700">지필평가로 돌아가기</Button>
           </Link>
         </div>

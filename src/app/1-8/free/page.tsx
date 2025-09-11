@@ -77,7 +77,7 @@ export default function FreeBoardPage() {
     try {
       // 캐시 우회를 위해 timestamp 추가
       const timestamp = new Date().getTime()
-      const response = await fetch(`/api/posts?t=${timestamp}`, {
+      const response = await fetch(`/api/posts?board=free&t=${timestamp}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache'
