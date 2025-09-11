@@ -78,9 +78,20 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return response;
 
   } catch (error: any) {
-    console.error('User approval error:', error);
+    console.error('❌ User approval error:', error);
+    console.error('🔍 Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.split('\n').slice(0, 3),
+      userId: params.id,
+      timestamp: new Date().toISOString()
+    });
+    
     return NextResponse.json(
-      { error: '사용자 승인 중 오류가 발생했습니다.' },
+      { 
+        error: '사용자 승인 중 오류가 발생했습니다.',
+        details: process.env.NODE_ENV === 'production' ? undefined : error.message 
+      },
       { status: 500 }
     );
   } finally {
