@@ -14,16 +14,16 @@ import VictoryBanner from '@/components/ui/victory-banner'
 
 const recentPosts = {
   free: [] as any[],
-  assignment: [] as any[],
-  exam: [] as any[]
+  evaluation: [] as any[],
+  suggestion: [] as any[]
 }
 
 export default function ClassroomPage() {
   const [user, setUser] = useState<any>(null)
   const [dynamicPosts, setDynamicPosts] = useState<any>({
     free: [],
-    assignment: [],
-    exam: []
+    evaluation: [],
+    suggestion: []
   })
   const [hotPosts, setHotPosts] = useState<any[]>([])
   const [boardNotices, setBoardNotices] = useState<any[]>([])
@@ -110,9 +110,9 @@ export default function ClassroomPage() {
         .map((post: any) => ({
           ...post,
           boardColor: post.board === 'free' ? 'bg-blue-500' : 
-                     post.board === 'assignment' ? 'bg-green-500' : 'bg-purple-500',
+                     post.board === 'evaluation' ? 'bg-green-500' : 'bg-purple-500',
           boardName: post.board === 'free' ? '자유게시판' :
-                     post.board === 'assignment' ? '수행평가' : '지필평가',
+                     post.board === 'evaluation' ? '수행/지필평가' : '건의사항',
           link: `/1-8/${post.board}/${post.id}`
         }))
       
@@ -121,10 +121,10 @@ export default function ClassroomPage() {
       const freePosts = postsWithLocalComments.filter((post: any) => post.board === 'free')
         .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 5)
-      const assignmentPosts = postsWithLocalComments.filter((post: any) => post.board === 'assignment')
+      const evaluationPosts = postsWithLocalComments.filter((post: any) => post.board === 'evaluation')
         .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 5)
-      const examPosts = postsWithLocalComments.filter((post: any) => post.board === 'exam')
+      const suggestionPosts = postsWithLocalComments.filter((post: any) => post.board === 'suggestion')
         .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 5)
       const memoryPostsData = postsWithLocalComments.filter((post: any) => post.board === 'memories')
@@ -134,17 +134,17 @@ export default function ClassroomPage() {
       const allFreePosts = [...recentPosts.free, ...freePosts]
         .sort((a: any, b: any) => new Date(b.createdAt || b.time).getTime() - new Date(a.createdAt || a.time).getTime())
         .slice(0, 5)
-      const allAssignmentPosts = [...recentPosts.assignment, ...assignmentPosts]
+      const allAssignmentPosts = [...recentPosts.evaluation, ...evaluationPosts]
         .sort((a: any, b: any) => new Date(b.createdAt || b.time).getTime() - new Date(a.createdAt || a.time).getTime())
         .slice(0, 5)
-      const allExamPosts = [...recentPosts.exam, ...examPosts]
+      const allExamPosts = [...recentPosts.suggestion, ...suggestionPosts]
         .sort((a: any, b: any) => new Date(b.createdAt || b.time).getTime() - new Date(a.createdAt || a.time).getTime())
         .slice(0, 5)
       
       setDynamicPosts({
         free: allFreePosts,
-        assignment: allAssignmentPosts,
-        exam: allExamPosts
+        evaluation: allAssignmentPosts,
+        suggestion: allExamPosts
       })
 
       setMemoryPosts(memoryPostsData)
@@ -154,8 +154,8 @@ export default function ClassroomPage() {
       // 기본 게시물도 추가 (조회수가 있을 경우)
       const defaultPostsWithBoard = [
         ...recentPosts.free.map((p: any) => ({ ...p, board: 'free', boardColor: 'bg-blue-500' })),
-        ...recentPosts.assignment.map((p: any) => ({ ...p, board: 'assignment', boardColor: 'bg-green-500' })),
-        ...recentPosts.exam.map((p: any) => ({ ...p, board: 'exam', boardColor: 'bg-purple-500' }))
+        ...recentPosts.evaluation.map((p: any) => ({ ...p, board: 'evaluation', boardColor: 'bg-green-500' })),
+        ...recentPosts.suggestion.map((p: any) => ({ ...p, board: 'suggestion', boardColor: 'bg-purple-500' }))
       ]
       
       const hotPostsList = [...allPosts, ...defaultPostsWithBoard]
@@ -165,9 +165,9 @@ export default function ClassroomPage() {
         .map(post => ({
           ...post,
           boardColor: post.board === 'free' ? 'bg-blue-500' : 
-                     post.board === 'assignment' ? 'bg-green-500' : 'bg-purple-500',
+                     post.board === 'evaluation' ? 'bg-green-500' : 'bg-purple-500',
           boardName: post.board === 'free' ? '자유게시판' :
-                     post.board === 'assignment' ? '수행평가' : '지필평가'
+                     post.board === 'evaluation' ? '수행평가' : '지필평가'
         }))
       
       setHotPosts(hotPostsList)
@@ -452,10 +452,10 @@ export default function ClassroomPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <Link href="/1-8/assignment" className="hover:text-green-600 transition-colors">
+              <Link href="/1-8/evaluation" className="hover:text-green-600 transition-colors">
                 수행평가
               </Link>
-              <Link href="/1-8/assignment">
+              <Link href="/1-8/evaluation">
                 <Button variant="outline" size="sm">더보기</Button>
               </Link>
             </CardTitle>
@@ -466,8 +466,8 @@ export default function ClassroomPage() {
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-2"></div>
                 <span className="text-gray-500 text-sm">로딩 중...</span>
               </div>
-            ) : dynamicPosts.assignment.map((post: any) => (
-              <Link key={post.id} href={`/1-8/assignment/${post.id}`} className="block">
+            ) : dynamicPosts.evaluation.map((post: any) => (
+              <Link key={post.id} href={`/1-8/evaluation/${post.id}`} className="block">
                 <div className="space-y-1 hover:bg-gray-50 p-2 rounded-md transition-colors">
                   <div className="font-medium text-sm hover:text-green-600 cursor-pointer flex items-center gap-2">
                     {post.title}
@@ -492,10 +492,10 @@ export default function ClassroomPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <Link href="/1-8/exam" className="hover:text-purple-600 transition-colors">
+              <Link href="/1-8/suggestion" className="hover:text-purple-600 transition-colors">
                 지필평가
               </Link>
-              <Link href="/1-8/exam">
+              <Link href="/1-8/suggestion">
                 <Button variant="outline" size="sm">더보기</Button>
               </Link>
             </CardTitle>
@@ -506,8 +506,8 @@ export default function ClassroomPage() {
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
                 <span className="text-gray-500 text-sm">로딩 중...</span>
               </div>
-            ) : dynamicPosts.exam.map((post: any) => (
-              <Link key={post.id} href={`/1-8/exam/${post.id}`} className="block">
+            ) : dynamicPosts.suggestion.map((post: any) => (
+              <Link key={post.id} href={`/1-8/suggestion/${post.id}`} className="block">
                 <div className="space-y-1 hover:bg-gray-50 p-2 rounded-md transition-colors">
                   <div className="font-medium text-sm hover:text-purple-600 cursor-pointer flex items-center gap-2">
                     {post.title}

@@ -33,11 +33,11 @@ export default function RootLayout({
                       <a href="/1-8/free" className="text-lg font-medium text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md hover:bg-blue-50 transition-all">
                         💬 자유게시판
                       </a>
-                      <a href="/1-8/assignment" className="text-lg font-medium text-gray-700 hover:text-green-600 px-3 py-2 rounded-md hover:bg-green-50 transition-all">
-                        📝 수행평가
+                      <a href="/1-8/evaluation" className="text-lg font-medium text-gray-700 hover:text-green-600 px-3 py-2 rounded-md hover:bg-green-50 transition-all">
+                        📝 수행/지필평가
                       </a>
-                      <a href="/1-8/exam" className="text-lg font-medium text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md hover:bg-purple-50 transition-all">
-                        📚 지필평가
+                      <a href="/1-8/suggestion" className="text-lg font-medium text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md hover:bg-purple-50 transition-all">
+                        💡 건의사항
                       </a>
                       <a href="/1-8/memories" className="text-lg font-medium text-gray-700 hover:text-pink-600 px-3 py-2 rounded-md hover:bg-pink-50 transition-all">
                         📸 우리반 추억
