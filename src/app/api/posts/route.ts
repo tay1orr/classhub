@@ -46,15 +46,17 @@ export async function GET(request: Request) {
             name: true
           }
         },
-        comments: {
+        _count: {
           select: {
-            id: true
+            comments: true
           }
         }
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: [
+        { isPinned: 'desc' }, // 공지사항 우선
+        { createdAt: 'desc' } // 최신순
+      ],
+      take: boardFilter ? 50 : 100 // 페이지네이션으로 성능 향상
     });
 
     console.log('API: Found posts:', posts.length);
@@ -74,7 +76,7 @@ export async function GET(request: Request) {
       dislikes: post.dislikesCount,
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString(),
-      comments: post.comments.length
+      comments: post._count.comments
     }));
 
     const response = NextResponse.json({ posts: postsWithCounts });

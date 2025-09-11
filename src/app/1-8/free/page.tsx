@@ -17,6 +17,7 @@ export default function FreeBoardPage() {
   const [sortBy, setSortBy] = useState('latest')
   const [selectedPosts, setSelectedPosts] = useState<string[]>([])
   const [isSelectMode, setIsSelectMode] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     setUser(getCurrentUser())
@@ -87,6 +88,7 @@ export default function FreeBoardPage() {
 
   const loadPosts = async () => {
     try {
+      setIsLoading(true)
       // 강력한 캐시 우회를 위해 다중 timestamp 추가
       const timestamp = new Date().getTime()
       const random = Math.random()
@@ -121,6 +123,8 @@ export default function FreeBoardPage() {
       }
     } catch (error) {
       console.error('Failed to load posts:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -327,7 +331,16 @@ export default function FreeBoardPage() {
 
       {/* 게시글 목록 */}
       <div className="space-y-4">
-        {filteredPosts.length > 0 ? (
+        {isLoading ? (
+          <Card>
+            <CardContent className="pt-6 text-center py-12">
+              <div className="flex items-center justify-center space-x-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span className="text-gray-500">게시글을 불러오는 중...</span>
+              </div>
+            </CardContent>
+          </Card>
+        ) : filteredPosts.length > 0 ? (
           filteredPosts.map((post) => (
             <Card key={post.id} className={`${post.isPinned ? 'border-yellow-200 bg-yellow-50/30' : ''} ${selectedPosts.includes(post.id.toString()) ? 'border-blue-300 bg-blue-50/30' : ''}`}>
               <CardContent className="pt-6">

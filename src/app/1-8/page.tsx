@@ -29,6 +29,7 @@ export default function ClassroomPage() {
   const [boardNotices, setBoardNotices] = useState<any[]>([])
   const [memoryPosts, setMemoryPosts] = useState<any[]>([])
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     setUser(getCurrentUser())
@@ -36,6 +37,7 @@ export default function ClassroomPage() {
     // API에서 실제 게시글 가져오기
     const fetchPosts = async () => {
       try {
+        setIsLoading(true)
         // 강력한 캐시 우회를 위해 다중 timestamp 추가
         const timestamp = new Date().getTime()
         const random = Math.random()
@@ -168,6 +170,11 @@ export default function ClassroomPage() {
         }))
       
       setHotPosts(hotPostsList)
+      } catch (error) {
+        console.error('Failed to load posts:', error)
+      } finally {
+        setIsLoading(false)
+      }
     }
     
     fetchPosts()
@@ -413,7 +420,12 @@ export default function ClassroomPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {dynamicPosts.free.map((post: any) => (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                <span className="text-gray-500 text-sm">로딩 중...</span>
+              </div>
+            ) : dynamicPosts.free.map((post: any) => (
               <Link key={post.id} href={`/1-8/free/${post.id}`} className="block">
                 <div className="space-y-1 hover:bg-gray-50 p-2 rounded-md transition-colors">
                   <div className="font-medium text-sm hover:text-blue-600 cursor-pointer flex items-center gap-2">
@@ -448,7 +460,12 @@ export default function ClassroomPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {dynamicPosts.assignment.map((post: any) => (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-2"></div>
+                <span className="text-gray-500 text-sm">로딩 중...</span>
+              </div>
+            ) : dynamicPosts.assignment.map((post: any) => (
               <Link key={post.id} href={`/1-8/assignment/${post.id}`} className="block">
                 <div className="space-y-1 hover:bg-gray-50 p-2 rounded-md transition-colors">
                   <div className="font-medium text-sm hover:text-green-600 cursor-pointer flex items-center gap-2">
@@ -483,7 +500,12 @@ export default function ClassroomPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {dynamicPosts.exam.map((post: any) => (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+                <span className="text-gray-500 text-sm">로딩 중...</span>
+              </div>
+            ) : dynamicPosts.exam.map((post: any) => (
               <Link key={post.id} href={`/1-8/exam/${post.id}`} className="block">
                 <div className="space-y-1 hover:bg-gray-50 p-2 rounded-md transition-colors">
                   <div className="font-medium text-sm hover:text-purple-600 cursor-pointer flex items-center gap-2">
