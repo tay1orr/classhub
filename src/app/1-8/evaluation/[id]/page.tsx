@@ -181,7 +181,7 @@ export default function AssignmentPostDetailPage() {
       const result = await response.json()
       if (response.ok) {
         alert('게시글이 삭제되었습니다.')
-        router.push('/1-8/assignment')
+        router.push('/1-8/evaluation')
       } else {
         throw new Error(result.error || '게시글 삭제에 실패했습니다.')
       }
@@ -302,6 +302,45 @@ export default function AssignmentPostDetailPage() {
     }
   }
 
+  const handleDeleteComment = async (commentId: string) => {
+    if (!user) {
+      alert('로그인이 필요합니다.')
+      return
+    }
+
+    if (!confirm('댓글을 삭제하시겠습니까?')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/comments/${commentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id
+        })
+      })
+
+      if (response.ok) {
+        // localStorage에서 댓글 제거
+        const localComments = JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]')
+        const updatedComments = localComments.filter((comment: any) => comment.id !== commentId)
+        localStorage.setItem(`comments_${postId}`, JSON.stringify(updatedComments))
+        
+        // 페이지 새로고침
+        window.location.reload()
+      } else {
+        const result = await response.json()
+        throw new Error(result.error || '댓글 삭제에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Delete comment error:', error)
+      alert('댓글 삭제 중 오류가 발생했습니다.')
+    }
+  }
+
   const handleCommentLike = (commentId: string, isLike: boolean, isReply: boolean = false, parentId?: string) => {
     if (!user) {
       alert('로그인이 필요합니다.')
@@ -385,7 +424,7 @@ export default function AssignmentPostDetailPage() {
     return (
       <div className="p-8">
         <p className="text-red-500">{error}</p>
-        <Link href="/1-8/assignment">
+        <Link href="/1-8/evaluation">
           <Button>돌아가기</Button>
         </Link>
       </div>
@@ -394,9 +433,9 @@ export default function AssignmentPostDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <Link href="/1-8/assignment" className="flex items-center gap-2 text-green-600 hover:underline">
+      <Link href="/1-8/evaluation" className="flex items-center gap-2 text-green-600 hover:underline">
         <ArrowLeft className="h-4 w-4" />
-        수행평가로 돌아가기
+        수행/지필평가로 돌아가기
       </Link>
 
       <Card>
@@ -593,6 +632,17 @@ export default function AssignmentPostDetailPage() {
                               답글
                             </button>
                           )}
+                          
+                          {/* 댓글 삭제 버튼 */}
+                          {user && (user.id === comment.authorId || isAdmin(user)) && (
+                            <button
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              삭제
+                            </button>
+                          )}
                         </div>
                         
                         {/* 답글 작성 폼 */}
@@ -678,6 +728,17 @@ export default function AssignmentPostDetailPage() {
                                   <ThumbsDown className="h-3 w-3" />
                                   {reply.dislikes || 0}
                                 </button>
+                                
+                                {/* 답글 삭제 버튼 */}
+                                {user && (user.id === reply.authorId || isAdmin(user)) && (
+                                  <button
+                                    onClick={() => handleDeleteComment(reply.id)}
+                                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition-colors"
+                                  >
+                                    <Trash2 className="h-2.5 w-2.5" />
+                                    삭제
+                                  </button>
+                                )}
                               </div>
                             </div>
                           ))}

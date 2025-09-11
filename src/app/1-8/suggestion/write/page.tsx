@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { getCurrentUser } from '@/lib/simple-auth'
 import Link from 'next/link'
 
-export default function WriteExamPage() {
+export default function WriteSuggestionPage() {
   const [user, setUser] = useState<any>(null)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -17,18 +17,16 @@ export default function WriteExamPage() {
   const [category, setCategory] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // 말머리 목록 (지필평가용)
+  // 말머리 목록 (건의사항용)
   const categories = [
     { value: '', label: '선택 안함' },
-    { value: '국어', label: '📖 국어' },
-    { value: '수학', label: '🔢 수학' },
-    { value: '영어', label: '🗣️ 영어' },
-    { value: '과학', label: '🔬 과학' },
-    { value: '사회', label: '🌍 사회' },
-    { value: '중간고사', label: '📝 중간고사' },
-    { value: '기말고사', label: '📋 기말고사' },
-    { value: '모의고사', label: '✏️ 모의고사' },
-    { value: '단원평가', label: '📃 단원평가' }
+    { value: '수업개선', label: '📚 수업개선' },
+    { value: '시설개선', label: '🏫 시설개선' },
+    { value: '급식개선', label: '🍽️ 급식개선' },
+    { value: '규정개선', label: '📋 규정개선' },
+    { value: '행사제안', label: '🎉 행사제안' },
+    { value: '동아리', label: '👥 동아리' },
+    { value: '기타', label: '💡 기타' }
   ]
 
   useEffect(() => {
@@ -61,7 +59,7 @@ export default function WriteExamPage() {
           title: title.trim(),
           content: content.trim(),
           authorId: user.id,
-          boardKey: 'EXAM',
+          boardKey: 'SUGGESTION',
           isAnonymous: anonymous,
           isPinned,
           category: category || null
@@ -76,7 +74,7 @@ export default function WriteExamPage() {
       
       alert('게시글이 등록되었습니다!')
       // 강제 새로고침으로 최신 데이터 로드
-      window.location.href = `/1-8/exam?refresh=${Date.now()}`
+      window.location.href = `/1-8/suggestion?refresh=${Date.now()}`
     } catch (error) {
       alert('게시글 등록 중 오류가 발생했습니다.')
     } finally {
@@ -91,23 +89,23 @@ export default function WriteExamPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/1-8/exam" className="text-purple-600 hover:underline">
-          ← 지필평가로 돌아가기
+        <Link href="/1-8/suggestion" className="text-purple-600 hover:underline">
+          ← 건의사항으로 돌아가기
         </Link>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>새 지필평가 게시글 작성</CardTitle>
+          <CardTitle>새 건의사항 게시글 작성</CardTitle>
           <CardDescription>
-            시험 정보나 학습 자료를 공유해주세요.
+            우리반에 개선이 필요한 사항이나 아이디어를 공유해주세요.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="category" className="text-sm font-medium">
-                과목/시험 선택
+                건의사항 유형
               </label>
               <select
                 id="category"
@@ -130,7 +128,7 @@ export default function WriteExamPage() {
               <Input
                 id="title"
                 type="text"
-                placeholder="지필평가 게시글 제목을 입력하세요"
+                placeholder="건의사항 제목을 입력하세요"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={100}
@@ -144,7 +142,7 @@ export default function WriteExamPage() {
               </label>
               <Textarea
                 id="content"
-                placeholder="지필평가 관련 내용을 입력하세요"
+                placeholder="건의사항이나 개선아이디어를 상세히 작성해주세요"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={10}
@@ -188,7 +186,7 @@ export default function WriteExamPage() {
               <Button type="submit" disabled={isSubmitting} className="bg-purple-600 hover:bg-purple-700">
                 {isSubmitting ? '등록 중...' : '게시글 등록'}
               </Button>
-              <Link href="/1-8/exam">
+              <Link href="/1-8/suggestion">
                 <Button type="button" variant="outline">
                   취소
                 </Button>

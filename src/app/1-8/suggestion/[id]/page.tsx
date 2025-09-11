@@ -130,39 +130,47 @@ export default function ExamPostDetailPage() {
       localStorage.setItem('classhub_comments', JSON.stringify(updatedComments))
 
       alert('게시글이 삭제되었습니다.')
-      window.location.href = '/1-8/exam'
+      window.location.href = '/1-8/suggestion'
     } catch (error) {
       alert('게시글 삭제 중 오류가 발생했습니다.')
     }
   }
 
-  const handleDeleteComment = async (commentId: number) => {
-    if (!confirm('이 댓글을 삭제하시겠습니까?')) return
+  const handleDeleteComment = async (commentId: string) => {
+    if (!user) {
+      alert('로그인이 필요합니다.')
+      return
+    }
+
+    if (!confirm('댓글을 삭제하시겠습니까?')) {
+      return
+    }
 
     try {
-      // localStorage에서 댓글 삭제
-      const storedComments = JSON.parse(localStorage.getItem('classhub_comments') || '[]')
-      const updatedComments = storedComments.filter((c: any) => c.id !== commentId)
-      localStorage.setItem('classhub_comments', JSON.stringify(updatedComments))
+      const response = await fetch(`/api/comments/${commentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id
+        })
+      })
 
-      // 댓글 목록 업데이트
-      setComments(prev => prev.filter(c => c.id !== commentId))
-
-      // 게시글 댓글 수 업데이트
-      if (post) {
-        const updatedPost = { ...post, comments: Math.max(0, (post.comments || 1) - 1) }
-        setPost(updatedPost)
-
-        // localStorage에서 게시글 댓글 수도 업데이트
-        const storedPosts = JSON.parse(localStorage.getItem('classhub_posts') || '[]')
-        const updatedPosts = storedPosts.map((p: any) =>
-          p.id.toString() === postId?.toString() ? updatedPost : p
-        )
-        localStorage.setItem('classhub_posts', JSON.stringify(updatedPosts))
+      if (response.ok) {
+        // localStorage에서 댓글 제거
+        const localComments = JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]')
+        const updatedComments = localComments.filter((comment: any) => comment.id !== commentId)
+        localStorage.setItem(`comments_${postId}`, JSON.stringify(updatedComments))
+        
+        // 페이지 새로고침
+        window.location.reload()
+      } else {
+        const result = await response.json()
+        throw new Error(result.error || '댓글 삭제에 실패했습니다.')
       }
-
-      alert('댓글이 삭제되었습니다.')
     } catch (error) {
+      console.error('Delete comment error:', error)
       alert('댓글 삭제 중 오류가 발생했습니다.')
     }
   }
@@ -296,8 +304,8 @@ export default function ExamPostDetailPage() {
       <div className="max-w-4xl mx-auto p-6">
         <div className="text-center">
           <p className="text-gray-500">게시글을 찾을 수 없습니다.</p>
-          <Link href="/1-8/exam">
-            <Button className="mt-4 bg-purple-600 hover:bg-purple-700">지필평가로 돌아가기</Button>
+          <Link href="/1-8/suggestion">
+            <Button className="mt-4 bg-purple-600 hover:bg-purple-700">건의사항으로 돌아가기</Button>
           </Link>
         </div>
       </div>
@@ -308,9 +316,9 @@ export default function ExamPostDetailPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* 뒤로가기 */}
       <div className="flex items-center gap-4">
-        <Link href="/1-8/exam" className="flex items-center gap-2 text-purple-600 hover:underline">
+        <Link href="/1-8/suggestion" className="flex items-center gap-2 text-purple-600 hover:underline">
           <ArrowLeft className="h-4 w-4" />
-          지필평가로 돌아가기
+          건의사항으로 돌아가기
         </Link>
       </div>
 
@@ -419,8 +427,8 @@ export default function ExamPostDetailPage() {
                         <span className="font-medium text-sm">{comment.author}</span>
                         <span className="text-xs text-gray-500">{formatDate(comment.createdAt)}</span>
                       </div>
-                      {/* 댓글 삭제 버튼 (관리자만) */}
-                      {user && canDeleteComment(user) && (
+                      {/* 댓글 삭제 버튼 */}
+                      {user && (user.id === comment.authorId || canDeleteComment(user)) && (
                         <Button
                           variant="outline"
                           size="sm"
