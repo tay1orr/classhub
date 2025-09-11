@@ -19,6 +19,7 @@ export default function AssignmentBoardPage() {
   const [sortBy, setSortBy] = useState('latest')
   const [selectedPosts, setSelectedPosts] = useState<string[]>([])
   const [isSelectMode, setIsSelectMode] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     setUser(getCurrentUser())
@@ -72,6 +73,7 @@ export default function AssignmentBoardPage() {
 
   const loadPosts = async () => {
     try {
+      setIsLoading(true)
       // 캐시 우회를 위해 timestamp 추가
       const timestamp = new Date().getTime()
       const response = await fetch(`/api/posts?t=${timestamp}`, {
@@ -101,6 +103,8 @@ export default function AssignmentBoardPage() {
       }
     } catch (error) {
       console.error('Failed to load posts:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -367,6 +371,15 @@ export default function AssignmentBoardPage() {
               </CardContent>
             </Card>
           ))
+        ) : isLoading ? (
+          <Card>
+            <CardContent className="pt-6 text-center py-12">
+              <div className="flex items-center justify-center space-x-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+                <p className="text-gray-500">게시글을 불러오는중...</p>
+              </div>
+            </CardContent>
+          </Card>
         ) : (
           <Card>
             <CardContent className="pt-6 text-center py-12">
