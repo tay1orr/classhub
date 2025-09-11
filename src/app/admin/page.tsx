@@ -216,21 +216,44 @@ export default function AdminPage() {
       return
     }
 
+    console.log(`🔄 삭제 시작: ${userName} (${userId})`)
+    setProcessingUserId(userId)
+
     try {
       const response = await fetch(`/api/admin/users/${userId}/delete`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
       })
       
+      console.log('📋 삭제 응답 상태:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       const result = await response.json()
+      console.log('📋 삭제 결과:', result)
+      
       setMessage(result.message || result.error)
       
       if (result.success) {
-        loadUsers()
+        console.log('✅ 삭제 성공 - 사용자 목록 새로고침 중...')
+        await loadUsers()
+      } else {
+        console.error('❌ 삭제 실패:', result.error)
       }
-    } catch (error) {
-      setMessage('사용자 삭제 중 오류가 발생했습니다.')
+    } catch (error: any) {
+      console.error('❌ 삭제 오류:', error)
+      setMessage(`사용자 삭제 중 오류가 발생했습니다: ${error.message}`)
     }
-    setTimeout(() => setMessage(''), 3000)
+    
+    setProcessingUserId(null)
+    setTimeout(() => setMessage(''), 5000)
   }
 
   const handleMigrateSchema = async () => {
@@ -274,6 +297,62 @@ export default function AdminPage() {
     } catch (error) {
       setMessage('기존 사용자 마이그레이션 중 오류가 발생했습니다.')
     }
+    setTimeout(() => setMessage(''), 5000)
+  }
+
+  const handleRevertUsersTopending = async () => {
+    const approvedUsers = users.filter(u => u.isApproved && u.role !== 'ADMIN')
+    
+    if (approvedUsers.length === 0) {
+      setMessage('승인대기로 되돌릴 사용자가 없습니다.')
+      setTimeout(() => setMessage(''), 3000)
+      return
+    }
+
+    if (!confirm(`승인된 학생 ${approvedUsers.length}명을 모두 승인대기 상태로 되돌리시겠습니까?\n\n⚠️ 관리자는 제외하고 학생들만 승인대기 상태로 변경됩니다.\n\n되돌릴 사용자:\n${approvedUsers.map(u => `- ${u.name} (${u.email})`).join('\n')}`)) {
+      return
+    }
+
+    console.log(`🔄 사용자들을 승인대기로 되돌리기 시작: ${approvedUsers.length}명`)
+    setIsLoading(true)
+
+    try {
+      const response = await fetch('/api/admin/revert-to-pending', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        body: JSON.stringify({
+          userIds: approvedUsers.map(u => u.id)
+        })
+      })
+      
+      console.log('📋 되돌리기 응답 상태:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const result = await response.json()
+      console.log('📋 되돌리기 결과:', result)
+      
+      setMessage(result.message || result.error)
+      
+      if (result.success) {
+        console.log('✅ 되돌리기 성공 - 사용자 목록 새로고침 중...')
+        await loadUsers()
+      } else {
+        console.error('❌ 되돌리기 실패:', result.error)
+      }
+    } catch (error: any) {
+      console.error('❌ 되돌리기 오류:', error)
+      setMessage(`사용자 상태 되돌리기 중 오류가 발생했습니다: ${error.message}`)
+    }
+    
+    setIsLoading(false)
     setTimeout(() => setMessage(''), 5000)
   }
 
@@ -417,6 +496,14 @@ export default function AdminPage() {
                 <UserCheck className="h-4 w-4 mr-2" />
                 기존 사용자 자동 승인
               </Button>
+              <Button 
+                onClick={handleRevertUsersTopending}
+                disabled={isLoading}
+                className="w-full justify-start bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                {isLoading ? '처리중...' : '승인된 학생들 승인대기로 되돌리기'}
+              </Button>
               <Link href="/1-6/free">
                 <Button variant="outline" className="w-full justify-start">
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -555,10 +642,17 @@ export default function AdminPage() {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleDeleteUser(userData.id, userData.name)}
-                        disabled={userData.id === user.id} // 자기 자신은 삭제 불가
+                        disabled={userData.id === user.id || processingUserId === userData.id} // 자기 자신은 삭제 불가
                         className="text-red-600 border-red-300 hover:bg-red-50"
                       >
-                        삭제
+                        {processingUserId === userData.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
+                            처리중...
+                          </>
+                        ) : (
+                          '삭제'
+                        )}
                       </Button>
                     </>
                   )}
