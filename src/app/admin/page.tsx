@@ -15,6 +15,7 @@ export default function AdminPage() {
   const [targetEmail, setTargetEmail] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [message, setMessage] = useState('')
+  const [processingUserId, setProcessingUserId] = useState<string | null>(null)
 
   useEffect(() => {
     const currentUserStr = localStorage.getItem('classhub_current_user')
@@ -125,21 +126,44 @@ export default function AdminPage() {
   }
 
   const handleApproveUser = async (userId: string, userName: string) => {
+    console.log(`🔄 승인 시작: ${userName} (${userId})`)
+    setProcessingUserId(userId)
+    
     try {
       const response = await fetch(`/api/admin/users/${userId}/approve`, {
         method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
       })
       
+      console.log('📋 승인 응답 상태:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       const result = await response.json()
+      console.log('📋 승인 결과:', result)
+      
       setMessage(result.message || result.error)
       
       if (result.success) {
-        loadUsers()
+        console.log('✅ 승인 성공 - 사용자 목록 새로고침 중...')
+        await loadUsers()
+      } else {
+        console.error('❌ 승인 실패:', result.error)
       }
-    } catch (error) {
-      setMessage('사용자 승인 중 오류가 발생했습니다.')
+    } catch (error: any) {
+      console.error('❌ 승인 오류:', error)
+      setMessage(`사용자 승인 중 오류가 발생했습니다: ${error.message}`)
     }
-    setTimeout(() => setMessage(''), 3000)
+    
+    setProcessingUserId(null)
+    setTimeout(() => setMessage(''), 5000)
   }
 
   const handleRejectUser = async (userId: string, userName: string) => {
@@ -147,21 +171,44 @@ export default function AdminPage() {
       return
     }
 
+    console.log(`🔄 거부 시작: ${userName} (${userId})`)
+    setProcessingUserId(userId)
+
     try {
       const response = await fetch(`/api/admin/users/${userId}/reject`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
       })
       
+      console.log('📋 거부 응답 상태:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       const result = await response.json()
+      console.log('📋 거부 결과:', result)
+      
       setMessage(result.message || result.error)
       
       if (result.success) {
-        loadUsers()
+        console.log('✅ 거부 성공 - 사용자 목록 새로고침 중...')
+        await loadUsers()
+      } else {
+        console.error('❌ 거부 실패:', result.error)
       }
-    } catch (error) {
-      setMessage('사용자 거부 중 오류가 발생했습니다.')
+    } catch (error: any) {
+      console.error('❌ 거부 오류:', error)
+      setMessage(`사용자 거부 중 오류가 발생했습니다: ${error.message}`)
     }
-    setTimeout(() => setMessage(''), 3000)
+    
+    setProcessingUserId(null)
+    setTimeout(() => setMessage(''), 5000)
   }
 
   const handleDeleteUser = async (userId: string, userName: string) => {
@@ -451,17 +498,33 @@ export default function AdminPage() {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleApproveUser(userData.id, userData.name)}
+                        disabled={processingUserId === userData.id}
                         className="text-green-600 border-green-300 hover:bg-green-50"
                       >
-                        승인
+                        {processingUserId === userData.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-2"></div>
+                            처리중...
+                          </>
+                        ) : (
+                          '승인'
+                        )}
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleRejectUser(userData.id, userData.name)}
+                        disabled={processingUserId === userData.id}
                         className="text-red-600 border-red-300 hover:bg-red-50"
                       >
-                        거부
+                        {processingUserId === userData.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
+                            처리중...
+                          </>
+                        ) : (
+                          '거부'
+                        )}
                       </Button>
                     </>
                   ) : (
