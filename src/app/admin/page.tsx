@@ -26,12 +26,40 @@ export default function AdminPage() {
     }
     
     loadUsers()
+
+    // 페이지 포커스 시 실시간 새로고침
+    const handleFocus = () => {
+      console.log('👁️ Admin page focused - refreshing user list...')
+      loadUsers()
+    }
+
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        handleFocus()
+      }
+    })
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleFocus)
+    }
   }, [])
 
   const loadUsers = async () => {
     try {
       console.log('🔄 Loading users...')
-      const response = await fetch('/api/admin/users')
+      // 강력한 캐시 우회를 위해 다중 timestamp 추가
+      const timestamp = new Date().getTime()
+      const random = Math.random()
+      const response = await fetch(`/api/admin/users?t=${timestamp}&r=${random}&v=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       const result = await response.json()
       
       console.log('📋 API Response:', result)
@@ -377,6 +405,17 @@ export default function AdminPage() {
             <Badge className="bg-yellow-500 text-white">
               승인대기: {users.filter(u => !u.isApproved).length}명
             </Badge>
+            <Badge className="bg-red-500 text-white">
+              깨진 텍스트: {users.filter(u => u.name.includes('�')).length}명
+            </Badge>
+            <Button 
+              onClick={loadUsers} 
+              size="sm" 
+              variant="outline"
+              className="ml-auto"
+            >
+              새로고침
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -385,7 +424,10 @@ export default function AdminPage() {
               <div key={userData.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
-                    <h3 className="font-semibold">{userData.name}</h3>
+                    <h3 className={`font-semibold ${userData.name.includes('�') ? 'text-red-600 bg-red-50 px-2 py-1 rounded border' : ''}`}>
+                      {userData.name}
+                      {userData.name.includes('�') && <span className="text-xs text-red-500 ml-2">⚠️ 깨진 텍스트</span>}
+                    </h3>
                     <Badge 
                       className={userData.role === 'ADMIN' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}
                     >

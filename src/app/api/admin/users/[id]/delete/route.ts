@@ -63,11 +63,21 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
     console.log('🗑️ 사용자 삭제 완료:', userToDelete);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: `${userToDelete.name}님이 삭제되었습니다.`,
       deletedUser: userToDelete
     });
+    
+    // UTF-8 인코딩 헤더 설정
+    response.headers.set('Content-Type', 'application/json; charset=utf-8');
+    
+    // 캐시 완전 비활성화 헤더 설정
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
 
   } catch (error: any) {
     console.error('Delete user error:', error);
