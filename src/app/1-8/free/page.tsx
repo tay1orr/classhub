@@ -21,6 +21,18 @@ export default function FreeBoardPage() {
   useEffect(() => {
     setUser(getCurrentUser())
     loadPosts()
+    
+    // 페이지 포커스 시 게시글 새로고침
+    const handleFocus = () => {
+      console.log('Page focused, refreshing posts...')
+      loadPosts()
+    }
+    
+    window.addEventListener('focus', handleFocus)
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [])
 
   // 클라이언트 사이드에서 localStorage 댓글 수 업데이트
