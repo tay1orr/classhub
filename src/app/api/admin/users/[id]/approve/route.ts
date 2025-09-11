@@ -33,21 +33,26 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       );
     }
 
-    // 사용자 승인
+    // 사용자 승인 - 강제 업데이트
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { isApproved: true },
+      data: { 
+        isApproved: true,
+        updatedAt: new Date() // 강제 타임스탬프 업데이트
+      },
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
         isApproved: true,
-        createdAt: true
+        createdAt: true,
+        updatedAt: true
       }
     });
 
     console.log('✅ 사용자 승인 완료:', updatedUser);
+    console.log('🔄 승인 상태 확인:', updatedUser.isApproved ? '승인됨' : '승인대기');
 
     const response = NextResponse.json({
       success: true,
