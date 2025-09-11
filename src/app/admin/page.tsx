@@ -49,18 +49,31 @@ export default function AdminPage() {
 
   const loadUsers = async () => {
     try {
+      setIsLoading(true)
       console.log('🔄 Loading users...')
+      
       // 강력한 캐시 우회를 위해 다중 timestamp 추가
       const timestamp = new Date().getTime()
       const random = Math.random()
-      const response = await fetch(`/api/admin/users?t=${timestamp}&r=${random}&v=${Date.now()}`, {
+      const uuid = Math.random().toString(36).substring(7)
+      
+      const response = await fetch(`/api/admin/users?t=${timestamp}&r=${random}&v=${Date.now()}&u=${uuid}&_=${new Date().valueOf()}`, {
+        method: 'GET',
         cache: 'no-store',
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Cache-Control': 'no-cache, no-store, must-revalidate, proxy-revalidate, max-age=0',
           'Pragma': 'no-cache',
-          'Expires': '0'
+          'Expires': '0',
+          'Last-Modified': new Date().toUTCString()
         }
       });
+      
+      console.log('📋 API Response status:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       const result = await response.json()
       
       console.log('📋 API Response:', result)
@@ -73,11 +86,12 @@ export default function AdminPage() {
         console.error('❌ API returned error:', result)
         setMessage('사용자 목록을 불러올 수 없습니다: ' + (result.error || 'Unknown error'))
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Load users error:', error)
-      setMessage('사용자 목록을 불러오는 중 오류가 발생했습니다: ' + error)
+      setMessage('사용자 목록을 불러오는 중 오류가 발생했습니다: ' + error.message)
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }
 
   const handleGrantAdmin = async (userId: string) => {
@@ -243,6 +257,11 @@ export default function AdminPage() {
       
       if (result.success) {
         console.log('✅ 삭제 성공 - 사용자 목록 새로고침 중...')
+        
+        // 로컬 상태에서도 즉시 제거
+        setUsers(prevUsers => prevUsers.filter(u => u.id !== userId))
+        
+        // API에서 새로고침도 병행
         await loadUsers()
       } else {
         console.error('❌ 삭제 실패:', result.error)
@@ -279,55 +298,22 @@ export default function AdminPage() {
   }
 
   const handleMigrateExistingUsers = async () => {
-    if (!confirm('기존 사용자들을 자동으로 승인하시겠습니까?\n\n이 작업은 오늘 이전에 가입한 모든 미승인 사용자를 승인 처리합니다.')) {
+    if (!confirm('승인된 학생들을 모두 승인대기 상태로 되돌리시겠습니까?\n\n⚠️ 관리자는 제외하고 학생들만 승인대기 상태로 변경됩니다.\n이후 수동으로 승인/거부를 할 수 있습니다.')) {
       return
     }
 
-    try {
-      const response = await fetch('/api/admin/migrate-existing-users', {
-        method: 'POST',
-      })
-      
-      const result = await response.json()
-      setMessage(result.message || result.error)
-      
-      if (result.success) {
-        loadUsers()
-      }
-    } catch (error) {
-      setMessage('기존 사용자 마이그레이션 중 오류가 발생했습니다.')
-    }
-    setTimeout(() => setMessage(''), 5000)
-  }
-
-  const handleRevertUsersTopending = async () => {
-    const approvedUsers = users.filter(u => u.isApproved && u.role !== 'ADMIN')
-    
-    if (approvedUsers.length === 0) {
-      setMessage('승인대기로 되돌릴 사용자가 없습니다.')
-      setTimeout(() => setMessage(''), 3000)
-      return
-    }
-
-    if (!confirm(`승인된 학생 ${approvedUsers.length}명을 모두 승인대기 상태로 되돌리시겠습니까?\n\n⚠️ 관리자는 제외하고 학생들만 승인대기 상태로 변경됩니다.\n\n되돌릴 사용자:\n${approvedUsers.map(u => `- ${u.name} (${u.email})`).join('\n')}`)) {
-      return
-    }
-
-    console.log(`🔄 사용자들을 승인대기로 되돌리기 시작: ${approvedUsers.length}명`)
+    console.log('🔄 학생들을 승인대기로 되돌리기 시작...')
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/admin/revert-to-pending', {
+      const response = await fetch('/api/admin/migrate-existing-users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
           'Expires': '0'
-        },
-        body: JSON.stringify({
-          userIds: approvedUsers.map(u => u.id)
-        })
+        }
       })
       
       console.log('📋 되돌리기 응답 상태:', response.status, response.statusText)
@@ -349,12 +335,13 @@ export default function AdminPage() {
       }
     } catch (error: any) {
       console.error('❌ 되돌리기 오류:', error)
-      setMessage(`사용자 상태 되돌리기 중 오류가 발생했습니다: ${error.message}`)
+      setMessage(`학생 상태 되돌리기 중 오류가 발생했습니다: ${error.message}`)
     }
     
     setIsLoading(false)
     setTimeout(() => setMessage(''), 5000)
   }
+
 
   const handleGrantAdminByEmail = async () => {
     if (!targetEmail.trim()) {
@@ -491,18 +478,11 @@ export default function AdminPage() {
               </Button>
               <Button 
                 onClick={handleMigrateExistingUsers}
-                className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <UserCheck className="h-4 w-4 mr-2" />
-                기존 사용자 자동 승인
-              </Button>
-              <Button 
-                onClick={handleRevertUsersTopending}
                 disabled={isLoading}
                 className="w-full justify-start bg-orange-600 hover:bg-orange-700 text-white"
               >
                 <AlertTriangle className="h-4 w-4 mr-2" />
-                {isLoading ? '처리중...' : '승인된 학생들 승인대기로 되돌리기'}
+                {isLoading ? '처리중...' : '승인된 학생들을 승인대기로 되돌리기'}
               </Button>
               <Link href="/1-6/free">
                 <Button variant="outline" className="w-full justify-start">
