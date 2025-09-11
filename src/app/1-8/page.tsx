@@ -36,12 +36,15 @@ export default function ClassroomPage() {
     // API에서 실제 게시글 가져오기
     const fetchPosts = async () => {
       try {
-        // 캐시 우회를 위해 timestamp 추가
+        // 강력한 캐시 우회를 위해 다중 timestamp 추가
         const timestamp = new Date().getTime()
-        const response = await fetch(`/api/posts?t=${timestamp}`, {
+        const random = Math.random()
+        const response = await fetch(`/api/posts?t=${timestamp}&r=${random}&v=${Date.now()}`, {
           cache: 'no-store',
           headers: {
-            'Cache-Control': 'no-cache'
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
           }
         });
         const data = await response.json();
