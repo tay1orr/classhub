@@ -62,8 +62,9 @@ export default function ClassroomPage() {
     };
     
     const updatePostsData = (storedPosts: any[]) => {
-      // localStorage 댓글 수를 반영한 게시글 업데이트
-      const postsWithLocalComments = storedPosts.map((post: any) => {
+      try {
+        // localStorage 댓글 수를 반영한 게시글 업데이트
+        const postsWithLocalComments = storedPosts.map((post: any) => {
         try {
           const localComments = JSON.parse(localStorage.getItem(`comments_${post.id}`) || '[]')
           const apiCommentReplies = JSON.parse(localStorage.getItem(`replies_${post.id}`) || '{}')
