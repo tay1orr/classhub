@@ -1,20 +1,37 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// Vercel serverless 캐시 무효화
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  console.log('🗑️ 댓글 삭제 API 호출:', { commentId: params.id, timestamp: new Date().toISOString() });
+  
   try {
     const commentId = params.id;
-    const { userId } = await request.json();
+    
+    // Body가 없을 수도 있으니 안전하게 처리
+    let userId = null;
+    try {
+      const body = await request.json();
+      userId = body.userId;
+    } catch (e) {
+      console.log('📋 Request body 없음 - URL에서 사용자 정보 확인 필요');
+    }
 
     if (!userId) {
+      console.error('❌ User ID가 제공되지 않음');
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 400 }
       );
     }
+
+    console.log('🔍 댓글 검색 중:', { commentId, userId });
 
     // 댓글 정보 확인
     const comment = await prisma.comment.findUnique({
@@ -22,11 +39,15 @@ export async function DELETE(
       select: {
         id: true,
         authorId: true,
-        parentId: true
+        parentId: true,
+        content: true
       }
     });
 
+    console.log('📋 댓글 조회 결과:', comment);
+
     if (!comment) {
+      console.error('❌ 댓글을 찾을 수 없음:', commentId);
       return NextResponse.json(
         { error: 'Comment not found' },
         { status: 404 }

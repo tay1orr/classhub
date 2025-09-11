@@ -1,13 +1,25 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// Vercel serverless 최적화
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: Request) {
+  const startTime = Date.now();
+  const requestId = Math.random().toString(36).substring(7);
+  
   try {
-    console.log('API: Starting posts fetch...');
+    console.log('🚀 게시글 목록 API 호출:', { requestId, timestamp: new Date().toISOString() });
     
-    // URL에서 board 파라미터 추출
+    // URL에서 파라미터 추출
     const { searchParams } = new URL(request.url);
     const boardFilter = searchParams.get('board');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20'); // 한 번에 20개씩 로딩
+    const skip = (page - 1) * limit;
+    
+    console.log('📋 요청 파라미터:', { boardFilter, page, limit, skip });
     
     // WHERE 조건 설정
     let whereCondition: any = {
@@ -20,51 +32,67 @@ export async function GET(request: Request) {
         key: boardFilter.toUpperCase()
       };
     }
-    
-    const posts = await prisma.post.findMany({
-      where: whereCondition,
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        isAnonymous: true,
-        isPinned: true,
-        views: true,
-        likesCount: true,
-        dislikesCount: true,
-        createdAt: true,
-        updatedAt: true,
-        author: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        board: {
-          select: {
-            key: true,
-            name: true
-          }
-        },
-        _count: {
-          select: {
-            comments: true
-          }
-        }
-      },
-      orderBy: [
-        { isPinned: 'desc' }, // 공지사항 우선
-        { createdAt: 'desc' } // 최신순
-      ],
-      take: boardFilter ? 50 : 100 // 페이지네이션으로 성능 향상
-    });
 
-    console.log('API: Found posts:', posts.length);
+    // 데이터베이스 연결 확인
+    await prisma.$queryRaw`SELECT 1`;
+    console.log('✅ 데이터베이스 연결 확인됨');
+    
+    // 병렬로 게시글과 총 개수 조회 (성능 향상)
+    const [posts, totalCount] = await Promise.all([
+      prisma.post.findMany({
+        where: whereCondition,
+        select: {
+          id: true,
+          title: true,
+          content: true, // 내용을 일부만 가져오도록 최적화 필요시 substring 적용
+          isAnonymous: true,
+          isPinned: true,
+          views: true,
+          likesCount: true,
+          dislikesCount: true,
+          createdAt: true,
+          updatedAt: true,
+          author: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
+          board: {
+            select: {
+              key: true,
+              name: true
+            }
+          },
+          _count: {
+            select: {
+              comments: true
+            }
+          }
+        },
+        orderBy: [
+          { isPinned: 'desc' }, // 공지사항 우선
+          { createdAt: 'desc' } // 최신순
+        ],
+        take: limit,
+        skip: skip
+      }),
+      prisma.post.count({
+        where: whereCondition
+      })
+    ]);
+
+    const processingTime = Date.now() - startTime;
+    console.log('✅ 게시글 조회 완료:', { 
+      postsCount: posts.length, 
+      totalCount, 
+      processingTime: processingTime + 'ms' 
+    });
 
     const postsWithCounts = posts.map(post => ({
       id: post.id,
       title: post.title,
-      content: post.content,
+      content: post.content.length > 200 ? post.content.substring(0, 200) + '...' : post.content, // 내용 길이 최적화
       author: post.author.name,
       authorId: post.author.id,
       board: post.board.key.toLowerCase(),
@@ -79,7 +107,22 @@ export async function GET(request: Request) {
       comments: post._count.comments
     }));
 
-    const response = NextResponse.json({ posts: postsWithCounts });
+    const response = NextResponse.json({ 
+      posts: postsWithCounts,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        pages: Math.ceil(totalCount / limit),
+        hasNext: skip + posts.length < totalCount,
+        hasPrev: page > 1
+      },
+      performance: {
+        requestId,
+        processingTime,
+        timestamp: new Date().toISOString()
+      }
+    });
     
     // UTF-8 인코딩 헤더 설정
     response.headers.set('Content-Type', 'application/json; charset=utf-8');
