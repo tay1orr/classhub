@@ -48,9 +48,15 @@ export async function DELETE(
 
     if (!comment) {
       console.error('❌ 댓글을 찾을 수 없음:', commentId);
+      
+      // 댓글이 이미 삭제되었다면 성공으로 처리 (중복 삭제 방지)
+      console.log('💡 댓글이 이미 삭제되었거나 존재하지 않음 - 성공으로 처리');
       return NextResponse.json(
-        { error: 'Comment not found' },
-        { status: 404 }
+        { 
+          success: true,
+          message: 'Comment already deleted or does not exist'
+        },
+        { status: 200 }
       );
     }
 

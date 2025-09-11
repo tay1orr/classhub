@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const boardFilter = searchParams.get('board');
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20'); // 한 번에 20개씩 로딩
+    const limit = parseInt(searchParams.get('limit') || '10'); // 10개씩으로 더 줄임 - 더 빠른 로딩
     const skip = (page - 1) * limit;
     
     console.log('📋 요청 파라미터:', { boardFilter, page, limit, skip });
@@ -44,14 +44,14 @@ export async function GET(request: Request) {
         select: {
           id: true,
           title: true,
-          content: true, // 내용을 일부만 가져오도록 최적화 필요시 substring 적용
+          content: true,
           isAnonymous: true,
           isPinned: true,
           views: true,
           likesCount: true,
           dislikesCount: true,
           createdAt: true,
-          updatedAt: true,
+          // updatedAt 제거 - 불필요한 데이터 전송 줄이기
           author: {
             select: {
               id: true,
@@ -92,7 +92,7 @@ export async function GET(request: Request) {
     const postsWithCounts = posts.map(post => ({
       id: post.id,
       title: post.title,
-      content: post.content.length > 200 ? post.content.substring(0, 200) + '...' : post.content, // 내용 길이 최적화
+      content: post.content.length > 100 ? post.content.substring(0, 100) + '...' : post.content, // 더 짧게 자르기
       author: post.author.name,
       authorId: post.author.id,
       board: post.board.key.toLowerCase(),
@@ -103,7 +103,6 @@ export async function GET(request: Request) {
       likes: post.likesCount,
       dislikes: post.dislikesCount,
       createdAt: post.createdAt.toISOString(),
-      updatedAt: post.updatedAt.toISOString(),
       comments: post._count.comments
     }));
 
