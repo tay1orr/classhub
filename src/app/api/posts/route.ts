@@ -1,16 +1,28 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     console.log('API: Starting posts fetch...');
     
-    // 캐시 비활성화 헤더 추가
+    // URL에서 board 파라미터 추출
+    const { searchParams } = new URL(request.url);
+    const boardFilter = searchParams.get('board');
+    
+    // WHERE 조건 설정
+    let whereCondition: any = {
+      deletedAt: null // 삭제되지 않은 게시글만 조회
+    };
+    
+    // board 파라미터가 있으면 필터링 추가
+    if (boardFilter) {
+      whereCondition.board = {
+        key: boardFilter.toUpperCase()
+      };
+    }
     
     const posts = await prisma.post.findMany({
-      where: {
-        deletedAt: null // 삭제되지 않은 게시글만 조회
-      },
+      where: whereCondition,
       select: {
         id: true,
         title: true,
@@ -66,6 +78,9 @@ export async function GET() {
     }));
 
     const response = NextResponse.json({ posts: postsWithCounts });
+    
+    // UTF-8 인코딩 헤더 설정
+    response.headers.set('Content-Type', 'application/json; charset=utf-8');
     
     // 캐시 완전 비활성화 헤더 설정 (Vercel CDN 무력화)
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');

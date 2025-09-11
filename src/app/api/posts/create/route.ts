@@ -4,8 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
 
   try {
-    const body = await request.text();
-    const { title, content, authorId, boardKey, isAnonymous, isPinned, category } = JSON.parse(body);
+    const { title, content, authorId, boardKey, isAnonymous, isPinned, category } = await request.json();
 
     console.log('Creating post:', { title, content, authorId, boardKey, isAnonymous, isPinned, category });
 
@@ -86,10 +85,15 @@ export async function POST(request: Request) {
       category: category || null
     };
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       post: formattedPost
     });
+    
+    // UTF-8 인코딩 헤더 설정
+    response.headers.set('Content-Type', 'application/json; charset=utf-8');
+    
+    return response;
 
   } catch (error: any) {
     console.error('Create post error:', error);
