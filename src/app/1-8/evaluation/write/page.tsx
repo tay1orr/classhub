@@ -15,9 +15,17 @@ export default function WriteEvaluationPage() {
   const [anonymous, setAnonymous] = useState(false)
   const [isPinned, setIsPinned] = useState(false)
   const [category, setCategory] = useState('')
+  const [evaluationType, setEvaluationType] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // 말머리 목록 (수행평가용)
+  // 평가 유형 목록
+  const evaluationTypes = [
+    { value: '', label: '선택 안함' },
+    { value: '수행평가', label: '📝 수행평가' },
+    { value: '지필평가', label: '📚 지필평가' }
+  ]
+
+  // 과목 목록
   const categories = [
     { value: '', label: '선택 안함' },
     { value: '국어', label: '📖 국어' },
@@ -25,6 +33,7 @@ export default function WriteEvaluationPage() {
     { value: '영어', label: '🗣️ 영어' },
     { value: '과학', label: '🔬 과학' },
     { value: '사회', label: '🌍 사회' },
+    { value: '정보', label: '💻 정보' },
     { value: '체육', label: '⚽ 체육' },
     { value: '음악', label: '🎵 음악' },
     { value: '미술', label: '🎨 미술' },
@@ -64,7 +73,7 @@ export default function WriteEvaluationPage() {
           boardKey: 'EVALUATION',
           isAnonymous: anonymous,
           isPinned,
-          category: category || null
+          category: [evaluationType, category].filter(Boolean).join(' ') || null
         })
       })
       
@@ -105,6 +114,24 @@ export default function WriteEvaluationPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="evaluationType" className="text-sm font-medium">
+                평가 유형
+              </label>
+              <select
+                id="evaluationType"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                value={evaluationType}
+                onChange={(e) => setEvaluationType(e.target.value)}
+              >
+                {evaluationTypes.map(type => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="space-y-2">
               <label htmlFor="category" className="text-sm font-medium">
                 과목 선택

@@ -453,7 +453,7 @@ export default function ClassroomPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <Link href="/1-8/evaluation" className="hover:text-green-600 transition-colors">
-                수행평가
+                수행/지필평가
               </Link>
               <Link href="/1-8/evaluation">
                 <Button variant="outline" size="sm">더보기</Button>
@@ -493,7 +493,7 @@ export default function ClassroomPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <Link href="/1-8/suggestion" className="hover:text-purple-600 transition-colors">
-                지필평가
+                건의사항
               </Link>
               <Link href="/1-8/suggestion">
                 <Button variant="outline" size="sm">더보기</Button>
