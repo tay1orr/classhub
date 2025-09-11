@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
-  const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL + '?pgbouncer=true&connection_limit=1&pool_timeout=0'
-      }
-    }
-  });
 
   try {
     // 캐시 문제 방지를 위해 강제 리프레시
@@ -59,6 +52,7 @@ export async function GET() {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    // 공용 prisma 인스턴스이므로 disconnect 하지 않음
+    console.log('🔄 사용자 목록 조회 완료');
   }
 }

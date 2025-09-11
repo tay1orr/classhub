@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL + '?pgbouncer=true&connection_limit=1&pool_timeout=0'
-      }
-    }
-  });
 
   try {
     const userId = params.id;
@@ -26,32 +19,46 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       );
     }
 
+    // 이미 승인된 경우 로그만 남기고 계속 진행 (강제 업데이트)
     if (user.isApproved) {
-      return NextResponse.json(
-        { error: '이미 승인된 사용자입니다.' },
-        { status: 400 }
-      );
+      console.log('⚠️ 이미 승인된 사용자이지만 강제 업데이트 진행:', user.name);
     }
 
-    // 사용자 승인 - 강제 업데이트
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: { 
-        isApproved: true,
-        updatedAt: new Date() // 강제 타임스탬프 업데이트
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        isApproved: true,
-        createdAt: true,
-        updatedAt: true
-      }
+    // 트랜잭션으로 강력한 업데이트 보장
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      // 강제 연결 새로고침
+      console.log('🔄 데이터베이스 연결 새로고침...');
+      
+      // 현재 상태 확인
+      const currentUser = await tx.user.findUnique({
+        where: { id: userId },
+        select: { isApproved: true, name: true }
+      });
+      
+      console.log('📊 현재 상태:', currentUser);
+      
+      // 강제 업데이트 (이미 승인되었어도 다시 업데이트)
+      const updated = await tx.user.update({
+        where: { id: userId },
+        data: { 
+          isApproved: true,
+          updatedAt: new Date()
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isApproved: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      });
+      
+      return updated;
     });
 
-    console.log('✅ 사용자 승인 완료:', updatedUser);
+    console.log('✅ 사용자 승인 완료 (트랜잭션):', updatedUser);
     console.log('🔄 승인 상태 확인:', updatedUser.isApproved ? '승인됨' : '승인대기');
 
     const response = NextResponse.json({
@@ -77,6 +84,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    // 공용 prisma 인스턴스이므로 disconnect 하지 않음
+    console.log('🔄 승인 처리 완료');
   }
 }
