@@ -30,6 +30,13 @@ export default function ClassroomPage() {
   const [memoryPosts, setMemoryPosts] = useState<any[]>([])
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isLoading, setIsLoading] = useState(true)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  
+  // 이미지 배열
+  const images = [
+    '/images/class.jpg',
+    '/images/class2.jpg'
+  ]
 
   useEffect(() => {
     setUser(getCurrentUser())
@@ -192,9 +199,15 @@ export default function ClassroomPage() {
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date())
     }, 60000) // 1분마다 업데이트
+    
+    // 이미지 전환을 위한 interval 설정 (5초마다)
+    const imageInterval = setInterval(() => {
+      setCurrentImageIndex(prev => (prev + 1) % images.length)
+    }, 5000)
 
     return () => {
       clearInterval(timeInterval);
+      clearInterval(imageInterval);
       window.removeEventListener('focus', handleFocus);
     }
   }, [])
@@ -232,13 +245,21 @@ export default function ClassroomPage() {
       
       {/* 배경 이미지와 제목 섹션 */}
       <div className="relative h-80 md:h-96 rounded-lg overflow-hidden mb-8">
-        <Image
-          src="/images/class_photo.jpg"
-          alt="1학년 8반 우리반 사진"
-          fill
-          className="object-cover"
-          priority
-        />
+        {/* 이미지 슬라이드쇼 */}
+        <div className="relative w-full h-full">
+          {images.map((image, index) => (
+            <Image
+              key={image}
+              src={image}
+              alt={`1학년 8반 우리반 사진 ${index + 1}`}
+              fill
+              className={`object-cover transition-opacity duration-1000 ease-in-out ${
+                index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+              }`}
+              priority={index === 0}
+            />
+          ))}
+        </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
         <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4 md:px-6">
           <div className="max-w-4xl mx-auto">
@@ -259,6 +280,21 @@ export default function ClassroomPage() {
               </div>
             )}
           </div>
+        </div>
+        
+        {/* 이미지 인디케이터 (선택사항) */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+          {images.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentImageIndex(index)}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                index === currentImageIndex 
+                  ? 'bg-white' 
+                  : 'bg-white/50 hover:bg-white/75'
+              }`}
+            />
+          ))}
         </div>
       </div>
 
