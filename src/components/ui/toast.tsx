@@ -18,7 +18,9 @@ export function Toast({ id, title, description, type = 'info', duration = 3000, 
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(false)
-      setTimeout(onClose, 300) // 애니메이션이 끝난 후 제거
+      setTimeout(() => {
+        onClose?.()
+      }, 300) // 애니메이션이 끝난 후 제거
     }, duration)
 
     return () => clearTimeout(timer)
@@ -56,7 +58,9 @@ export function Toast({ id, title, description, type = 'info', duration = 3000, 
         <button
           onClick={() => {
             setIsVisible(false)
-            setTimeout(onClose, 300)
+            setTimeout(() => {
+              onClose?.()
+            }, 300)
           }}
           className="text-gray-400 hover:text-gray-600 transition-colors"
         >
