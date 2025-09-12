@@ -5,6 +5,53 @@ import { Button } from '@/components/ui/button'
 import { ThumbsUp, ThumbsDown } from 'lucide-react'
 import { getCurrentUser } from '@/lib/simple-auth'
 
+// 간단한 토스트 함수 (ToastProvider 없이 사용)
+const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  // 기존 토스트 제거
+  const existingToast = document.getElementById('like-toast')
+  if (existingToast) {
+    existingToast.remove()
+  }
+
+  // 새 토스트 생성
+  const toast = document.createElement('div')
+  toast.id = 'like-toast'
+  toast.className = `
+    fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg
+    flex items-center gap-2 min-w-[250px] max-w-[350px]
+    transition-all duration-300 ease-in-out transform translate-x-full opacity-0
+    ${type === 'success' 
+      ? 'bg-green-500 text-white' 
+      : 'bg-red-500 text-white'
+    }
+  `
+  
+  const icon = type === 'success' ? '👍' : '❌'
+  toast.innerHTML = `
+    <span class="text-lg">${icon}</span>
+    <span class="font-medium text-sm">${message}</span>
+  `
+  
+  document.body.appendChild(toast)
+  
+  // 슬라이드 인 애니메이션
+  setTimeout(() => {
+    toast.style.transform = 'translateX(0)'
+    toast.style.opacity = '1'
+  }, 50)
+  
+  // 자동 제거
+  setTimeout(() => {
+    toast.style.transform = 'translateX(100%)'
+    toast.style.opacity = '0'
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.remove()
+      }
+    }, 300)
+  }, 2500)
+}
+
 interface LikeButtonProps {
   postId: string
   initialLikes: number
@@ -162,6 +209,13 @@ export function LikeButton({
         const userLikes = JSON.parse(localStorage.getItem(`userLikes_${user.id}`) || '{}')
         userLikes[postId] = serverUserLike
         localStorage.setItem(`userLikes_${user.id}`, JSON.stringify(userLikes))
+        
+        // 성공 토스트 메시지
+        const action = isLike ? '좋아요' : '싫어요'
+        const message = serverUserLike === null 
+          ? `${action} 취소됨` 
+          : `${action} 반영됨`
+        showToast(message, 'success')
       }
     } catch (error: any) {
       // AbortError는 무시 (컴포넌트 언마운트나 페이지 이동 시 정상적인 상황)
@@ -182,10 +236,8 @@ export function LikeButton({
         userLikes[postId] = previousUserLike
         localStorage.setItem(`userLikes_${user.id}`, JSON.stringify(userLikes))
         
-        // 사용자에게 에러 알림 (너무 자주 표시되지 않도록 조건 추가)
-        if (error.message && !error.message.includes('fetch')) {
-          alert('좋아요/싫어요 처리 중 오류가 발생했습니다.')
-        }
+        // 에러 토스트 메시지
+        showToast('요청 처리 중 오류가 발생했습니다', 'error')
       }
     } finally {
       // 컴포넌트가 여전히 마운트되어 있을 때만 로딩 상태 해제
@@ -213,28 +265,44 @@ export function LikeButton({
         variant={userLike === true ? 'default' : 'outline'}
         size={size}
         onClick={() => handleLikeDislike(true)}
-        className={`${buttonSizeClass} ${
+        disabled={isLoading}
+        className={`${buttonSizeClass} relative ${
           userLike === true 
             ? 'bg-blue-500 hover:bg-blue-600 text-white border-blue-500' 
             : 'hover:bg-blue-50 hover:border-blue-200'
-        }`}
+        } ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
       >
-        <ThumbsUp className={`${iconSizeClass} ${userLike === true ? 'fill-current' : ''}`} />
-        {showCounts && <span className="ml-1">{likes}</span>}
+        <div className={`flex items-center ${isLoading ? 'invisible' : ''}`}>
+          <ThumbsUp className={`${iconSizeClass} ${userLike === true ? 'fill-current' : ''}`} />
+          {showCounts && <span className="ml-1">{likes}</span>}
+        </div>
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+          </div>
+        )}
       </Button>
       
       <Button
         variant={userLike === false ? 'default' : 'outline'}
         size={size}
         onClick={() => handleLikeDislike(false)}
-        className={`${buttonSizeClass} ${
+        disabled={isLoading}
+        className={`${buttonSizeClass} relative ${
           userLike === false 
             ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
             : 'hover:bg-red-50 hover:border-red-200'
-        }`}
+        } ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
       >
-        <ThumbsDown className={`${iconSizeClass} ${userLike === false ? 'fill-current' : ''}`} />
-        {showCounts && <span className="ml-1">{dislikes}</span>}
+        <div className={`flex items-center ${isLoading ? 'invisible' : ''}`}>
+          <ThumbsDown className={`${iconSizeClass} ${userLike === false ? 'fill-current' : ''}`} />
+          {showCounts && <span className="ml-1">{dislikes}</span>}
+        </div>
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+          </div>
+        )}
       </Button>
     </div>
   )
