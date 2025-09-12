@@ -119,11 +119,26 @@ export async function POST(
 
   } catch (error: any) {
     console.error('Like post error:', error);
+    
+    // 더 구체적인 에러 메시지 제공
+    let errorMessage = 'Failed to like post'
+    if (error.code === 'P2002') {
+      errorMessage = 'Duplicate like action detected'
+    } else if (error.code === 'P2025') {
+      errorMessage = 'Post or user not found'
+    } else if (error.message?.includes('timeout')) {
+      errorMessage = 'Request timeout - please try again'
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to like post' },
+      { error: errorMessage },
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    try {
+      await prisma.$disconnect();
+    } catch (disconnectError) {
+      console.error('Prisma disconnect error:', disconnectError);
+    }
   }
 }

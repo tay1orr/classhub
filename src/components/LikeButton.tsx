@@ -27,6 +27,7 @@ export function LikeButton({
   const [userLike, setUserLike] = useState<boolean | null>(initialUserLike)
   const [isLoading, setIsLoading] = useState(false)
   const [lastClickTime, setLastClickTime] = useState(0)
+  const [isMounted, setIsMounted] = useState(true)
 
   useEffect(() => {
     const user = getCurrentUser()
@@ -37,12 +38,20 @@ export function LikeButton({
         setUserLike(userLikes[postId])
       }
     }
+    
+    // cleanup 함수 - 컴포넌트가 언마운트될 때 실행
+    return () => {
+      setIsMounted(false)
+    }
   }, [postId])
 
   const handleLikeDislike = async (isLike: boolean) => {
-    // 중복 클릭 방지 (1500ms로 증가하여 확실히 방지)
+    // 컴포넌트가 언마운트되었거나 로딩 중이면 실행하지 않음
+    if (!isMounted || isLoading) return
+    
+    // 중복 클릭 방지 (800ms로 줄여서 사용자 경험 개선)
     const now = Date.now()
-    if (now - lastClickTime < 1500) return
+    if (now - lastClickTime < 800) return
     setLastClickTime(now)
 
     const user = getCurrentUser()
@@ -101,8 +110,19 @@ export function LikeButton({
     localStorage.setItem(`userLikes_${user.id}`, JSON.stringify(userLikes))
 
     // 백그라운드에서 서버 동기화 (UI 블로킹 없음)
+    setIsLoading(true)
+    
     try {
-      setIsLoading(true)
+      // AbortController로 컴포넌트 언마운트 시 요청 취소
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10초 타임아웃
+      
+      // 컴포넌트가 언마운트되면 요청 취소
+      if (!isMounted) {
+        controller.abort()
+        return
+      }
+      
       const response = await fetch(`/api/posts/${postId}/like`, {
         method: 'POST',
         headers: {
@@ -111,43 +131,67 @@ export function LikeButton({
         body: JSON.stringify({
           userId: user.id,
           isLike
-        })
+        }),
+        signal: controller.signal
       })
 
-      const result = await response.json()
+      clearTimeout(timeoutId)
+      
+      // 컴포넌트가 언마운트되었으면 더 이상 진행하지 않음
+      if (!isMounted) return
 
       if (!response.ok) {
+        const result = await response.json()
         throw new Error(result.error || '좋아요/싫어요 처리에 실패했습니다.')
       }
+      
+      const result = await response.json()
 
-      // 서버 응답으로 정확한 값 업데이트 (타입 체크 + 음수 방지)
-      const serverLikes = typeof result.likes === 'number' ? Math.max(0, result.likes) : 0
-      const serverDislikes = typeof result.dislikes === 'number' ? Math.max(0, result.dislikes) : 0
-      const serverUserLike = result.userLike === true ? true : result.userLike === false ? false : null
+      // 컴포넌트가 여전히 마운트되어 있을 때만 상태 업데이트
+      if (isMounted) {
+        // 서버 응답으로 정확한 값 업데이트 (타입 체크 + 음수 방지)
+        const serverLikes = typeof result.likes === 'number' ? Math.max(0, result.likes) : 0
+        const serverDislikes = typeof result.dislikes === 'number' ? Math.max(0, result.dislikes) : 0
+        const serverUserLike = result.userLike === true ? true : result.userLike === false ? false : null
+        
+        setLikes(serverLikes)
+        setDislikes(serverDislikes)
+        setUserLike(serverUserLike)
+        
+        // localStorage 재저장
+        const userLikes = JSON.parse(localStorage.getItem(`userLikes_${user.id}`) || '{}')
+        userLikes[postId] = serverUserLike
+        localStorage.setItem(`userLikes_${user.id}`, JSON.stringify(userLikes))
+      }
+    } catch (error: any) {
+      // AbortError는 무시 (컴포넌트 언마운트나 페이지 이동 시 정상적인 상황)
+      if (error.name === 'AbortError') {
+        return
+      }
       
-      setLikes(serverLikes)
-      setDislikes(serverDislikes)
-      setUserLike(serverUserLike)
-      
-      // localStorage 재저장
-      const userLikes = JSON.parse(localStorage.getItem(`userLikes_${user.id}`) || '{}')
-      userLikes[postId] = serverUserLike
-      localStorage.setItem(`userLikes_${user.id}`, JSON.stringify(userLikes))
-    } catch (error) {
       console.error('Like/dislike error:', error)
       
-      // 실패 시 이전 상태로 복원
-      setLikes(previousLikes)
-      setDislikes(previousDislikes)
-      setUserLike(previousUserLike)
-      
-      const userLikes = JSON.parse(localStorage.getItem(`userLikes_${user.id}`) || '{}')
-      userLikes[postId] = previousUserLike
-      localStorage.setItem(`userLikes_${user.id}`, JSON.stringify(userLikes))
-      
-      alert('좋아요/싫어요 처리 중 오류가 발생했습니다.')
+      // 컴포넌트가 여전히 마운트되어 있을 때만 에러 처리
+      if (isMounted) {
+        // 실패 시 이전 상태로 복원
+        setLikes(previousLikes)
+        setDislikes(previousDislikes)
+        setUserLike(previousUserLike)
+        
+        const userLikes = JSON.parse(localStorage.getItem(`userLikes_${user.id}`) || '{}')
+        userLikes[postId] = previousUserLike
+        localStorage.setItem(`userLikes_${user.id}`, JSON.stringify(userLikes))
+        
+        // 사용자에게 에러 알림 (너무 자주 표시되지 않도록 조건 추가)
+        if (error.message && !error.message.includes('fetch')) {
+          alert('좋아요/싫어요 처리 중 오류가 발생했습니다.')
+        }
+      }
     } finally {
-      setIsLoading(false)
+      // 컴포넌트가 여전히 마운트되어 있을 때만 로딩 상태 해제
+      if (isMounted) {
+        setIsLoading(false)
+      }
     }
   }
 
