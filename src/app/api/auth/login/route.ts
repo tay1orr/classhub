@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { setSessionCookie } from '@/lib/auth-server'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: Request) {
@@ -29,10 +30,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '아직 관리자 승인이 완료되지 않았습니다. 승인 후 로그인해 주세요.' }, { status: 403 })
     }
 
-    return NextResponse.json({
-      success: true,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, isApproved: user.isApproved },
-    })
+    const sessionUser = { id: user.id, name: user.name, email: user.email, role: user.role, isApproved: user.isApproved }
+    await setSessionCookie(sessionUser)
+
+    return NextResponse.json({ success: true, user: sessionUser })
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json({ error: '로그인 중 오류가 발생했습니다.' }, { status: 500 })

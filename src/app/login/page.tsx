@@ -26,7 +26,7 @@ export default function LoginPage() {
       const data = await res.json()
 
       if (data.success && data.user) {
-        setSession(data.user)
+        setSession(data.user) // 클라이언트 컴포넌트용 localStorage
         window.location.href = `/${CLASS_CONFIG.slug}`
       } else {
         setError(data.error || '로그인에 실패했습니다.')

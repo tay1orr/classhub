@@ -39,20 +39,21 @@ interface PostDetailProps {
   boardLabel: string
   boardColor: string
   backHref?: string
+  initialPost?: Post
 }
 
-export default function PostDetail({ boardLabel, boardColor, backHref }: PostDetailProps) {
+export default function PostDetail({ boardLabel, boardColor, backHref, initialPost }: PostDetailProps) {
   const params = useParams()
   const router = useRouter()
   const user = getSession()
   const classroom = params.classroom as string
   const postId = params.id as string
 
-  const [post, setPost] = useState<Post | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [post, setPost] = useState<Post | null>(initialPost || null)
+  const [isLoading, setIsLoading] = useState(!initialPost)
   const [error, setError] = useState('')
   const [liked, setLiked] = useState(false)
-  const [likeCount, setLikeCount] = useState(0)
+  const [likeCount, setLikeCount] = useState(initialPost?.likes || 0)
   const [isLiking, setIsLiking] = useState(false)
 
   const [newComment, setNewComment] = useState('')
@@ -77,7 +78,6 @@ export default function PostDetail({ boardLabel, boardColor, backHref }: PostDet
       if (res.ok && data.post) {
         setPost(data.post)
         setLikeCount(data.post.likes || 0)
-        // localStorage에서 좋아요 여부 복원
         const savedLiked = localStorage.getItem(likeKey) === 'true'
         setLiked(savedLiked)
       } else {
@@ -91,8 +91,13 @@ export default function PostDetail({ boardLabel, boardColor, backHref }: PostDet
   }, [postId, likeKey])
 
   useEffect(() => {
-    fetchPost()
-  }, [fetchPost])
+    if (!initialPost) {
+      fetchPost()
+    } else {
+      const savedLiked = localStorage.getItem(likeKey) === 'true'
+      setLiked(savedLiked)
+    }
+  }, [fetchPost, initialPost, likeKey])
 
   const handleLike = async () => {
     if (!user) { alert('로그인이 필요합니다.'); return }
