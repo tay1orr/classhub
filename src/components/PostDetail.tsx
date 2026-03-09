@@ -220,21 +220,16 @@ export default function PostDetail({ boardLabel, boardColor, backHref, initialPo
     } catch { /* ignore */ }
   }
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!confirm('게시글을 삭제하시겠습니까?')) return
-    try {
-      const res = await fetch(`/api/posts/${postId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id }),
-      })
-      if (res.ok) {
-        router.push(`/${classroom}/${post?.board}`)
-      } else {
-        const d = await res.json()
-        alert(d.error || '삭제에 실패했습니다.')
-      }
-    } catch { /* ignore */ }
+    // 즉시 이동, 삭제는 백그라운드 처리
+    router.push(`/${classroom}/${post?.board}`)
+    router.refresh()
+    fetch(`/api/posts/${postId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user?.id }),
+    }).catch(() => {})
   }
 
   if (isLoading) return (

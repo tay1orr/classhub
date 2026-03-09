@@ -4,31 +4,35 @@ import { CLASS_CONFIG } from '@/lib/config'
 
 export const dynamic = 'force-dynamic'
 
-// 보드와 교실이 없으면 자동 생성
-async function ensureClassroomAndBoards() {
-  // 교실 upsert
-  const classroom = await prisma.classroom.upsert({
-    where: { grade_classNo: { grade: CLASS_CONFIG.grade, classNo: CLASS_CONFIG.classNo } },
-    update: {},
-    create: { grade: CLASS_CONFIG.grade, classNo: CLASS_CONFIG.classNo, name: CLASS_CONFIG.displayName },
-  })
+// 서버 인스턴스 내 메모리 캐시 (classroom/board ID는 절대 안 바뀜)
+let cachedIds: { classroomId: string; boardIds: Record<string, string> } | null = null
 
-  // 게시판 upsert
-  const boards = [
-    { key: 'FREE', name: '자유게시판' },
-    { key: 'EVALUATION', name: '수행/지필평가' },
-    { key: 'SUGGESTION', name: '건의사항' },
-    { key: 'MEMORIES', name: '우리반 추억' },
-  ]
-  for (const b of boards) {
-    await prisma.board.upsert({
-      where: { key: b.key },
+async function getIds() {
+  if (cachedIds) return cachedIds
+
+  const [classroom, boards] = await Promise.all([
+    prisma.classroom.upsert({
+      where: { grade_classNo: { grade: CLASS_CONFIG.grade, classNo: CLASS_CONFIG.classNo } },
       update: {},
-      create: b,
-    })
-  }
+      create: { grade: CLASS_CONFIG.grade, classNo: CLASS_CONFIG.classNo, name: CLASS_CONFIG.displayName },
+    }),
+    Promise.all(
+      [
+        { key: 'FREE', name: '자유게시판' },
+        { key: 'EVALUATION', name: '수행/지필평가' },
+        { key: 'SUGGESTION', name: '건의사항' },
+        { key: 'MEMORIES', name: '우리반 추억' },
+      ].map((b) =>
+        prisma.board.upsert({ where: { key: b.key }, update: {}, create: b })
+      )
+    ),
+  ])
 
-  return classroom
+  cachedIds = {
+    classroomId: classroom.id,
+    boardIds: Object.fromEntries(boards.map((b) => [b.key, b.id])),
+  }
+  return cachedIds
 }
 
 export async function POST(request: Request) {
@@ -39,16 +43,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '필수 항목이 누락되었습니다.' }, { status: 400 })
     }
 
-    const classroom = await ensureClassroomAndBoards()
+    const boardKeyUpper = boardKey.toUpperCase()
 
-    const board = await prisma.board.findUnique({ where: { key: boardKey.toUpperCase() } })
-    if (!board) {
-      return NextResponse.json({ error: `게시판(${boardKey})을 찾을 수 없습니다.` }, { status: 404 })
-    }
+    // ID 캐시 + 유저 검증 병렬 실행
+    const [{ classroomId, boardIds }, author] = await Promise.all([
+      getIds(),
+      prisma.user.findUnique({ where: { id: authorId }, select: { id: true, isApproved: true } }),
+    ])
 
-    const author = await prisma.user.findUnique({ where: { id: authorId }, select: { id: true, isApproved: true } })
     if (!author || !author.isApproved) {
       return NextResponse.json({ error: '게시글 작성 권한이 없습니다.' }, { status: 403 })
+    }
+
+    const boardId = boardIds[boardKeyUpper]
+    if (!boardId) {
+      return NextResponse.json({ error: `게시판(${boardKey})을 찾을 수 없습니다.` }, { status: 404 })
     }
 
     const post = await prisma.post.create({
@@ -56,26 +65,18 @@ export async function POST(request: Request) {
         title: title.trim(),
         content: content.trim(),
         authorId,
-        boardId: board.id,
-        classroomId: classroom.id,
+        boardId,
+        classroomId,
         isAnonymous: isAnonymous || false,
         isPinned: isPinned || false,
         image: imageData || null,
       },
-      include: {
-        author: { select: { id: true, name: true } },
-        board: { select: { key: true, name: true } },
-      },
+      select: { id: true, createdAt: true, board: { select: { key: true } } },
     })
 
     return NextResponse.json({
       success: true,
-      post: {
-        id: post.id,
-        title: post.title,
-        board: post.board.key.toLowerCase(),
-        createdAt: post.createdAt.toISOString(),
-      },
+      post: { id: post.id, board: post.board.key.toLowerCase(), createdAt: post.createdAt.toISOString() },
     })
   } catch (error: any) {
     console.error('Create post error:', error)
