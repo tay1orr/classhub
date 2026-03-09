@@ -1,20 +1,11 @@
-'use client'
-
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { getSession } from '@/lib/auth-client'
-import { CLASS_CONFIG } from '@/lib/config'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { getServerSession } from '@/lib/auth-server'
+import { CLASS_CONFIG } from '@/lib/config'
 
-export default function RootPage() {
-  const router = useRouter()
-
-  useEffect(() => {
-    const user = getSession()
-    if (user) {
-      router.replace(`/${CLASS_CONFIG.slug}`)
-    }
-  }, [router])
+export default async function RootPage() {
+  const user = await getServerSession()
+  if (user) redirect(`/${CLASS_CONFIG.slug}`)
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center">
@@ -23,12 +14,10 @@ export default function RootPage() {
         <h1 className="text-4xl font-bold text-blue-600 mb-3">{CLASS_CONFIG.displayName}</h1>
         <p className="text-gray-500 mb-8">우리만의 특별한 소통 공간에 오신 것을 환영합니다</p>
         <div className="flex gap-4 justify-center">
-          <Link href="/login"
-            className="px-8 py-3 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors">
+          <Link href="/login" className="px-8 py-3 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors">
             로그인
           </Link>
-          <Link href="/signup"
-            className="px-8 py-3 text-sm font-semibold text-gray-700 border rounded-xl hover:bg-gray-50 transition-colors">
+          <Link href="/signup" className="px-8 py-3 text-sm font-semibold text-gray-700 border rounded-xl hover:bg-gray-50 transition-colors">
             회원가입
           </Link>
         </div>
