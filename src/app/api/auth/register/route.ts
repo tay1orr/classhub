@@ -1,90 +1,47 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { CLASS_CONFIG } from '@/lib/config'
+import bcrypt from 'bcryptjs'
 
 export async function POST(request: Request) {
-  const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL + '?pgbouncer=true&connection_limit=1&pool_timeout=0'
-      }
-    }
-  });
-
   try {
-    const { name, email, password } = await request.json();
+    const { name, email, password } = await request.json()
 
-    // 입력 검증
     if (!name || !email || !password) {
-      return NextResponse.json(
-        { error: '이름, 이메일, 비밀번호를 모두 입력해주세요.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '이름, 이메일, 비밀번호를 모두 입력해주세요.' }, { status: 400 })
+    }
+    if (password.length < 6) {
+      return NextResponse.json({ error: '비밀번호는 6자 이상이어야 합니다.' }, { status: 400 })
     }
 
-    // 이메일 중복 확인
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
-
+    const existingUser = await prisma.user.findUnique({ where: { email } })
     if (existingUser) {
-      return NextResponse.json(
-        { error: '이미 가입된 이메일입니다.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '이미 가입된 이메일입니다.' }, { status: 400 })
     }
 
-    // 비밀번호 해시화
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 10)
+    const isAdmin = (CLASS_CONFIG.adminEmails as readonly string[]).includes(email)
 
-    // 특정 이메일들은 자동으로 관리자 권한 부여 (승인 없이)
-    const adminEmails = [
-      'taylorr@gclass.ice.go.kr',
-      'admin@classhub.co.kr',
-      'taylorr@naver.com'  // 사용자 이메일 추가
-    ];
-    const isSpecialAdmin = adminEmails.includes(email);
-    
-    // 사용자 생성
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
         passwordHash,
-        role: isSpecialAdmin ? 'ADMIN' : 'STUDENT',
-        isApproved: isSpecialAdmin
+        role: isAdmin ? 'ADMIN' : 'STUDENT',
+        isApproved: isAdmin,
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        isApproved: true,
-        createdAt: true
-      }
-    });
+      select: { id: true, name: true, email: true, role: true, isApproved: true },
+    })
 
-    // 기본 교실 추가는 임시로 비활성화 (classroom이 존재하지 않을 수 있음)
-    // TODO: classroom 설정 후 활성화
-
-    console.log('✅ 새 사용자 등록:', newUser);
-    
     return NextResponse.json({
       success: true,
-      message: isSpecialAdmin ? 
-        '회원가입이 완료되었습니다! 관리자 권한이 자동으로 부여되었습니다. 🎉' : 
-        '회원가입이 완료되었습니다! 관리자 승인 후 이용하실 수 있습니다. ⏳',
-      user: newUser,
-      needsApproval: !isSpecialAdmin
-    });
-
+      message: isAdmin
+        ? '관리자 계정으로 가입되었습니다. 바로 로그인하실 수 있습니다.'
+        : '회원가입 완료! 관리자 승인 후 로그인할 수 있습니다.',
+      needsApproval: !isAdmin,
+    })
   } catch (error: any) {
-    console.error('Registration error:', error);
-    return NextResponse.json(
-      { error: '회원가입 중 오류가 발생했습니다.' },
-      { status: 500 }
-    );
-  } finally {
-    await prisma.$disconnect();
+    console.error('Register error:', error)
+    return NextResponse.json({ error: '회원가입 중 오류가 발생했습니다.' }, { status: 500 })
   }
 }

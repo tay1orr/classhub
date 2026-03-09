@@ -1,129 +1,107 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   try {
-    const url = new URL(request.url);
-    const postId = url.searchParams.get('postId');
+    const { searchParams } = new URL(request.url)
+    const postId = searchParams.get('postId')
+    if (!postId) return NextResponse.json({ error: 'postId가 필요합니다.' }, { status: 400 })
 
-    if (!postId) {
-      return NextResponse.json(
-        { error: 'Post ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // 댓글과 대댓글을 모두 가져옴 (parentId가 null인 것이 최상위 댓글)
     const comments = await prisma.comment.findMany({
-      where: { 
-        postId: postId,
-        deletedAt: null
-      },
+      where: { postId, deletedAt: null, parentId: null },
       select: {
         id: true,
         content: true,
         isAnonymous: true,
-        parentId: true,
         likesCount: true,
         createdAt: true,
-        author: {
+        author: { select: { id: true, name: true } },
+        replies: {
+          where: { deletedAt: null },
           select: {
             id: true,
-            name: true
-          }
-        }
+            content: true,
+            isAnonymous: true,
+            likesCount: true,
+            createdAt: true,
+            author: { select: { id: true, name: true } },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
       },
-      orderBy: {
-        createdAt: 'asc'
-      }
-    });
+      orderBy: { createdAt: 'asc' },
+    })
 
-    // 댓글을 계층 구조로 변환
-    const topLevelComments = comments.filter(comment => !comment.parentId);
-    const repliesMap = new Map();
+    const formatted = comments.map((c) => ({
+      id: c.id,
+      content: c.content,
+      author: c.isAnonymous ? '익명' : c.author.name,
+      authorId: c.author.id,
+      isAnonymous: c.isAnonymous,
+      likes: c.likesCount,
+      createdAt: c.createdAt.toISOString(),
+      replies: c.replies.map((r) => ({
+        id: r.id,
+        content: r.content,
+        author: r.isAnonymous ? '익명' : r.author.name,
+        authorId: r.author.id,
+        isAnonymous: r.isAnonymous,
+        likes: r.likesCount,
+        createdAt: r.createdAt.toISOString(),
+      })),
+    }))
 
-    // 대댓글들을 parentId별로 그룹화
-    comments.filter(comment => comment.parentId).forEach(reply => {
-      if (!repliesMap.has(reply.parentId)) {
-        repliesMap.set(reply.parentId, []);
-      }
-      repliesMap.get(reply.parentId).push(reply);
-    });
-
-    // 최상위 댓글에 대댓글들 추가
-    const formattedComments = topLevelComments.map(comment => ({
-      ...comment,
-      author: comment.author.name,
-      authorId: comment.author.id,
-      createdAt: comment.createdAt.toISOString(),
-      replies: repliesMap.get(comment.id) || []
-    }));
-
-    return NextResponse.json({ comments: formattedComments });
-
-  } catch (error: any) {
-    console.error('Get comments error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch comments: ' + error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ comments: formatted })
+  } catch (error) {
+    console.error('Get comments error:', error)
+    return NextResponse.json({ error: '댓글을 불러오는 중 오류가 발생했습니다.' }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const body = await request.text();
-    const { postId, authorId, content, isAnonymous, parentId } = JSON.parse(body);
+    const { postId, authorId, content, isAnonymous, parentId } = await request.json()
 
-    if (!postId || !authorId || !content) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+    if (!postId || !authorId || !content?.trim()) {
+      return NextResponse.json({ error: '필수 항목이 누락되었습니다.' }, { status: 400 })
     }
 
-    // 댓글 생성
-    const newComment = await prisma.comment.create({
-      data: {
-        postId,
-        authorId,
-        content,
-        isAnonymous: isAnonymous || false,
-        parentId: parentId || null
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      }
-    });
+    const author = await prisma.user.findUnique({ where: { id: authorId }, select: { id: true, name: true, isApproved: true } })
+    if (!author || !author.isApproved) {
+      return NextResponse.json({ error: '댓글 작성 권한이 없습니다.' }, { status: 403 })
+    }
 
-    // 포맷된 댓글 데이터 반환
-    const formattedComment = {
-      id: newComment.id,
-      content: newComment.content,
-      author: newComment.author.name,
-      authorId: newComment.author.id,
-      isAnonymous: newComment.isAnonymous,
-      parentId: newComment.parentId,
-      likesCount: newComment.likesCount,
-      createdAt: newComment.createdAt.toISOString(),
-      replies: []
-    };
+    const comment = await prisma.comment.create({
+      data: { postId, authorId, content: content.trim(), isAnonymous: isAnonymous || false, parentId: parentId || null },
+      select: {
+        id: true,
+        content: true,
+        isAnonymous: true,
+        likesCount: true,
+        parentId: true,
+        createdAt: true,
+        author: { select: { id: true, name: true } },
+      },
+    })
 
     return NextResponse.json({
       success: true,
-      comment: formattedComment
-    });
-
-  } catch (error: any) {
-    console.error('Create comment error:', error);
-    return NextResponse.json(
-      { error: 'Failed to create comment: ' + error.message },
-      { status: 500 }
-    );
+      comment: {
+        id: comment.id,
+        content: comment.content,
+        author: comment.isAnonymous ? '익명' : comment.author.name,
+        authorId: comment.author.id,
+        isAnonymous: comment.isAnonymous,
+        likes: comment.likesCount,
+        parentId: comment.parentId,
+        createdAt: comment.createdAt.toISOString(),
+        replies: [],
+      },
+    })
+  } catch (error) {
+    console.error('Create comment error:', error)
+    return NextResponse.json({ error: '댓글 작성 중 오류가 발생했습니다.' }, { status: 500 })
   }
 }

@@ -1,0 +1,194 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
+import { getSession } from '@/lib/auth-client'
+import { CLASS_CONFIG } from '@/lib/config'
+import { formatRelativeTime } from '@/lib/utils'
+import { MessageSquare, Heart, Eye, Pin, PenSquare, Search } from 'lucide-react'
+
+interface Post {
+  id: string
+  title: string
+  author: string
+  authorId: string
+  isAnonymous: boolean
+  board: string
+  views: number
+  likes: number
+  comments: number
+  isPinned: boolean
+  createdAt: string
+}
+
+interface BoardPageProps {
+  boardKey: string   // 'FREE' | 'EVALUATION' | 'SUGGESTION' | 'MEMORIES'
+  title: string
+  color: string      // tailwind color class e.g. 'blue'
+  emoji: string
+  writeLabel?: string
+}
+
+export default function BoardPage({ boardKey, title, color, emoji, writeLabel = '글쓰기' }: BoardPageProps) {
+  const params = useParams()
+  const classroom = params.classroom as string
+  const [user] = useState(getSession())
+  const [posts, setPosts] = useState<Post[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+
+  const boardSlug = boardKey.toLowerCase()
+
+  const fetchPosts = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch(`/api/posts?board=${boardKey}&page=${page}&limit=15`, { cache: 'no-store' })
+      const data = await res.json()
+      setPosts(data.posts || [])
+      setTotalPages(data.pagination?.pages || 1)
+    } catch {
+      setPosts([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [boardKey, page])
+
+  useEffect(() => { fetchPosts() }, [fetchPosts])
+
+  const displayed = search
+    ? posts.filter((p) => p.title.includes(search) || p.author.includes(search))
+    : posts
+
+  const pinned = displayed.filter((p) => p.isPinned)
+  const normal = displayed.filter((p) => !p.isPinned)
+
+  const colorMap: Record<string, string> = {
+    blue: 'text-blue-600 bg-blue-50 border-blue-200',
+    green: 'text-green-600 bg-green-50 border-green-200',
+    purple: 'text-purple-600 bg-purple-50 border-purple-200',
+    pink: 'text-pink-600 bg-pink-50 border-pink-200',
+  }
+  const colorClass = colorMap[color] || colorMap.blue
+  const btnMap: Record<string, string> = {
+    blue: 'bg-blue-600 hover:bg-blue-700',
+    green: 'bg-green-600 hover:bg-green-700',
+    purple: 'bg-purple-600 hover:bg-purple-700',
+    pink: 'bg-pink-600 hover:bg-pink-700',
+  }
+  const btnClass = btnMap[color] || btnMap.blue
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-4">
+      {/* 헤더 */}
+      <div className={`rounded-xl border p-5 ${colorClass}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">{emoji} {title}</h1>
+            <p className="text-sm opacity-70 mt-1">총 {posts.length}개의 게시글</p>
+          </div>
+          {user && (
+            <Link href={`/${classroom}/${boardSlug}/write`}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${btnClass}`}>
+              <PenSquare className="h-4 w-4" />
+              {writeLabel}
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* 검색 */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="제목 또는 작성자 검색..."
+          className="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+        />
+      </div>
+
+      {/* 게시글 목록 */}
+      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+        {isLoading ? (
+          <div className="p-8 space-y-3">
+            {[1,2,3,4,5].map((i) => (
+              <div key={i} className="h-14 bg-gray-100 rounded animate-pulse" />
+            ))}
+          </div>
+        ) : displayed.length === 0 ? (
+          <div className="py-16 text-center text-gray-400">
+            <div className="text-4xl mb-3">{emoji}</div>
+            <p>{search ? '검색 결과가 없습니다' : '아직 게시글이 없습니다'}</p>
+            {user && !search && (
+              <Link href={`/${classroom}/${boardSlug}/write`}
+                className="mt-4 inline-block text-sm text-blue-600 hover:underline">
+                첫 번째 글을 작성해보세요!
+              </Link>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* 공지 */}
+            {pinned.length > 0 && (
+              <div className="border-b">
+                {pinned.map((p) => <PostRow key={p.id} post={p} classroom={classroom} boardSlug={boardSlug} />)}
+              </div>
+            )}
+            {/* 일반 */}
+            <div className="divide-y">
+              {normal.map((p) => <PostRow key={p.id} post={p} classroom={classroom} boardSlug={boardSlug} />)}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* 페이지네이션 */}
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button key={p} onClick={() => setPage(p)}
+              className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                p === page ? 'bg-blue-600 text-white' : 'bg-white border text-gray-600 hover:bg-gray-50'
+              }`}>
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PostRow({ post, classroom, boardSlug }: { post: Post; classroom: string; boardSlug: string }) {
+  return (
+    <Link href={`/${classroom}/${boardSlug}/${post.id}`}
+      className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors group">
+      <div className="flex items-center gap-2 min-w-0">
+        {post.isPinned && <Pin className="h-3.5 w-3.5 text-yellow-500 shrink-0" />}
+        <span className={`truncate text-sm group-hover:text-blue-600 transition-colors ${post.isPinned ? 'font-semibold' : ''}`}>
+          {post.title}
+        </span>
+        {post.comments > 0 && (
+          <span className="shrink-0 flex items-center gap-0.5 text-xs text-blue-400">
+            <MessageSquare className="h-3 w-3" />{post.comments}
+          </span>
+        )}
+      </div>
+      <div className="shrink-0 flex items-center gap-4 text-xs text-gray-400 ml-3">
+        <span className="hidden sm:block">{post.isAnonymous ? '익명' : post.author}</span>
+        {post.likes > 0 && (
+          <span className="flex items-center gap-0.5 text-pink-400">
+            <Heart className="h-3 w-3" />{post.likes}
+          </span>
+        )}
+        <span className="flex items-center gap-0.5">
+          <Eye className="h-3 w-3" />{post.views}
+        </span>
+        <span className="hidden sm:block">{formatRelativeTime(post.createdAt)}</span>
+      </div>
+    </Link>
+  )
+}

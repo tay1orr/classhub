@@ -1,73 +1,50 @@
 'use client'
 
 import { useEffect } from 'react'
-import { getCurrentUser } from '@/lib/simple-auth'
+import { useRouter } from 'next/navigation'
+import { getSession } from '@/lib/auth-client'
+import { CLASS_CONFIG } from '@/lib/config'
+import Link from 'next/link'
 
-export default function HomePage() {
+export default function RootPage() {
+  const router = useRouter()
+
   useEffect(() => {
-    // 로그인한 사용자는 1-8 홈으로 자동 리디렉션
-    const user = getCurrentUser()
+    const user = getSession()
     if (user) {
-      window.location.href = '/1-8'
+      router.replace(`/${CLASS_CONFIG.slug}`)
     }
-  }, [])
+  }, [router])
 
   return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-blue-600">
-          우리반에 오신 것을 환영합니다! 🎉
-        </h1>
-        <p className="mt-4 text-lg text-muted-foreground">
-          1학년 8반만의 특별한 소통 공간
-        </p>
-        <div className="mt-6 flex gap-4 justify-center">
-          <a 
-            href="/login"
-            className="inline-flex items-center justify-center rounded-md bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700"
-          >
+    <div className="min-h-[80vh] flex items-center justify-center">
+      <div className="text-center max-w-lg">
+        <div className="text-6xl mb-6">🏫</div>
+        <h1 className="text-4xl font-bold text-blue-600 mb-3">{CLASS_CONFIG.displayName}</h1>
+        <p className="text-gray-500 mb-8">우리만의 특별한 소통 공간에 오신 것을 환영합니다</p>
+        <div className="flex gap-4 justify-center">
+          <Link href="/login"
+            className="px-8 py-3 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors">
             로그인
-          </a>
-          <a 
-            href="/signup"
-            className="inline-flex items-center justify-center rounded-md border border-gray-300 px-6 py-3 text-sm font-medium hover:bg-gray-50"
-          >
+          </Link>
+          <Link href="/signup"
+            className="px-8 py-3 text-sm font-semibold text-gray-700 border rounded-xl hover:bg-gray-50 transition-colors">
             회원가입
-          </a>
+          </Link>
         </div>
-      </div>
-      
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-lg border p-6 border-blue-200 bg-blue-50/30">
-          <h3 className="text-xl font-semibold text-blue-700">💬 자유게시판</h3>
-          <p className="mt-2 text-muted-foreground">
-            우리반 친구들과 자유롭게 소통해요
-          </p>
-        </div>
-        
-        <div className="rounded-lg border p-6 border-green-200 bg-green-50/30">
-          <h3 className="text-xl font-semibold text-green-700">📝 수행평가</h3>
-          <p className="mt-2 text-muted-foreground">
-            과제 정보와 자료를 함께 공유해요
-          </p>
-        </div>
-        
-        <div className="rounded-lg border p-6 border-purple-200 bg-purple-50/30">
-          <h3 className="text-xl font-semibold text-purple-700">📚 지필평가</h3>
-          <p className="mt-2 text-muted-foreground">
-            시험 정보와 스터디 자료를 나눠요
-          </p>
-        </div>
-      </div>
-
-      <div className="text-center mt-8">
-        <p className="text-sm text-gray-600">
-          <strong>직접 접속:</strong>
-        </p>
-        <div className="mt-2 space-x-4">
-          <a href="/login" className="text-blue-600 underline">로그인 페이지</a>
-          <a href="/signup" className="text-blue-600 underline">회원가입 페이지</a>
-          <a href="/1-8" className="text-blue-600 underline">1-8 학급</a>
+        <div className="mt-12 grid grid-cols-2 gap-4 text-left">
+          {[
+            { emoji: '💬', title: '자유게시판', desc: '친구들과 자유롭게 소통' },
+            { emoji: '📝', title: '수행/지필평가', desc: '평가 정보와 자료 공유' },
+            { emoji: '💡', title: '건의사항', desc: '선생님께 의견 전달' },
+            { emoji: '📸', title: '우리반 추억', desc: '소중한 순간들을 함께' },
+          ].map((item) => (
+            <div key={item.title} className="p-4 bg-white rounded-xl border">
+              <div className="text-2xl mb-1">{item.emoji}</div>
+              <div className="font-semibold text-sm text-gray-800">{item.title}</div>
+              <div className="text-xs text-gray-500 mt-0.5">{item.desc}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
