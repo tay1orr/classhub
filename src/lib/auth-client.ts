@@ -1,4 +1,4 @@
-// 클라이언트 사이드 세션 관리 (localStorage 기반)
+// 클라이언트 컴포넌트용 세션 관리 (localStorage 기반)
 
 export interface SessionUser {
   id: string
@@ -23,13 +23,11 @@ export function getSession(): SessionUser | null {
 export function setSession(user: SessionUser): void {
   if (typeof window === 'undefined') return
   localStorage.setItem(SESSION_KEY, JSON.stringify(user))
-  window.dispatchEvent(new Event('sessionChanged'))
 }
 
 export function clearSession(): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem(SESSION_KEY)
-  window.dispatchEvent(new Event('sessionChanged'))
 }
 
 export function isAdmin(user: SessionUser | null): boolean {

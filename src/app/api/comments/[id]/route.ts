@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { CLASS_CONFIG } from '@/lib/config'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,8 +16,8 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     })
     if (!comment) return NextResponse.json({ error: '댓글을 찾을 수 없습니다.' }, { status: 404 })
 
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, email: true } })
-    const isAdmin = user?.role === 'ADMIN' || (CLASS_CONFIG.adminEmails as readonly string[]).includes(user?.email ?? '')
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
+    const isAdmin = user?.role === 'ADMIN'
 
     if (comment.authorId !== userId && !isAdmin) {
       return NextResponse.json({ error: '삭제 권한이 없습니다.' }, { status: 403 })

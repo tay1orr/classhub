@@ -50,7 +50,18 @@ export default async function ClassroomHome() {
   }))
 
   const notices = posts.filter((p) => p.isPinned).slice(0, 5)
-  const hotPosts = [...posts].sort((a, b) => b.views - a.views).slice(0, 3)
+
+  // 점수 = 조회수 + 좋아요×3 + 댓글×2 - 경과시간(시간)×1.5 (최근 글 우대)
+  const hotPosts = [...posts]
+    .filter((p) => !p.isPinned)
+    .map((p) => {
+      const hoursAgo = (Date.now() - new Date(p.createdAt).getTime()) / 3600000
+      const score = p.views + p.likes * 3 + p.comments * 2 - hoursAgo * 1.5
+      return { ...p, score }
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+
   const byBoard = (board: string) => posts.filter((p) => p.board === board).slice(0, 5)
 
   return (
