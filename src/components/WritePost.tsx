@@ -48,10 +48,9 @@ export default function WritePost({ boardKey, title, color, emoji, backHref }: W
         body: JSON.stringify({
           title: form.title.trim(),
           content: form.content.trim(),
-          authorId: user.id,
           boardKey,
           isAnonymous: form.isAnonymous,
-          isPinned: form.isPinned && isAdmin(user),
+          isPinned: form.isPinned,
         }),
       })
       const data = await res.json()

@@ -1,25 +1,21 @@
+export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-export const dynamic = 'force-dynamic'
+import { getServerSession } from '@/lib/auth-server'
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
-    const { userId } = await request.json()
+    const session = await getServerSession()
+    if (!session) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+
     const commentId = params.id
-
-    if (!userId) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
-
     const comment = await prisma.comment.findUnique({
       where: { id: commentId },
       select: { authorId: true },
     })
     if (!comment) return NextResponse.json({ error: '댓글을 찾을 수 없습니다.' }, { status: 404 })
 
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
-    const isAdmin = user?.role === 'ADMIN'
-
-    if (comment.authorId !== userId && !isAdmin) {
+    if (comment.authorId !== session.id && session.role !== 'ADMIN') {
       return NextResponse.json({ error: '삭제 권한이 없습니다.' }, { status: 403 })
     }
 

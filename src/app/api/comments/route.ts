@@ -1,7 +1,7 @@
+export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-export const dynamic = 'force-dynamic'
+import { getServerSession } from '@/lib/auth-server'
 
 export async function GET(request: Request) {
   try {
@@ -12,20 +12,12 @@ export async function GET(request: Request) {
     const comments = await prisma.comment.findMany({
       where: { postId, deletedAt: null, parentId: null },
       select: {
-        id: true,
-        content: true,
-        isAnonymous: true,
-        likesCount: true,
-        createdAt: true,
+        id: true, content: true, isAnonymous: true, likesCount: true, createdAt: true,
         author: { select: { id: true, name: true } },
         replies: {
           where: { deletedAt: null },
           select: {
-            id: true,
-            content: true,
-            isAnonymous: true,
-            likesCount: true,
-            createdAt: true,
+            id: true, content: true, isAnonymous: true, likesCount: true, createdAt: true,
             author: { select: { id: true, name: true } },
           },
           orderBy: { createdAt: 'asc' },
@@ -43,45 +35,42 @@ export async function GET(request: Request) {
       likes: c.likesCount,
       createdAt: c.createdAt.toISOString(),
       replies: c.replies.map((r) => ({
-        id: r.id,
-        content: r.content,
+        id: r.id, content: r.content,
         author: r.isAnonymous ? '익명' : r.author.name,
         authorId: r.author.id,
         isAnonymous: r.isAnonymous,
         likes: r.likesCount,
         createdAt: r.createdAt.toISOString(),
+        replies: [],
       })),
     }))
 
     return NextResponse.json({ comments: formatted })
   } catch (error) {
-    console.error('Get comments error:', error)
     return NextResponse.json({ error: '댓글을 불러오는 중 오류가 발생했습니다.' }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const { postId, authorId, content, isAnonymous, parentId } = await request.json()
+    const session = await getServerSession()
+    if (!session) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+    if (!session.isApproved) return NextResponse.json({ error: '댓글 작성 권한이 없습니다.' }, { status: 403 })
 
-    if (!postId || !authorId || !content?.trim()) {
+    const { postId, content, isAnonymous, parentId } = await request.json()
+    if (!postId || !content?.trim()) {
       return NextResponse.json({ error: '필수 항목이 누락되었습니다.' }, { status: 400 })
     }
 
-    const author = await prisma.user.findUnique({ where: { id: authorId }, select: { id: true, name: true, isApproved: true } })
-    if (!author || !author.isApproved) {
-      return NextResponse.json({ error: '댓글 작성 권한이 없습니다.' }, { status: 403 })
-    }
-
     const comment = await prisma.comment.create({
-      data: { postId, authorId, content: content.trim(), isAnonymous: isAnonymous || false, parentId: parentId || null },
+      data: {
+        postId, authorId: session.id,
+        content: content.trim(),
+        isAnonymous: isAnonymous || false,
+        parentId: parentId || null,
+      },
       select: {
-        id: true,
-        content: true,
-        isAnonymous: true,
-        likesCount: true,
-        parentId: true,
-        createdAt: true,
+        id: true, content: true, isAnonymous: true, likesCount: true, parentId: true, createdAt: true,
         author: { select: { id: true, name: true } },
       },
     })
@@ -89,8 +78,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       comment: {
-        id: comment.id,
-        content: comment.content,
+        id: comment.id, content: comment.content,
         author: comment.isAnonymous ? '익명' : comment.author.name,
         authorId: comment.author.id,
         isAnonymous: comment.isAnonymous,
@@ -101,7 +89,6 @@ export async function POST(request: Request) {
       },
     })
   } catch (error) {
-    console.error('Create comment error:', error)
     return NextResponse.json({ error: '댓글 작성 중 오류가 발생했습니다.' }, { status: 500 })
   }
 }

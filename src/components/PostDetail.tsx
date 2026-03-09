@@ -111,8 +111,6 @@ export default function PostDetail({ boardLabel, boardColor, backHref, initialPo
     try {
       const res = await fetch(`/api/posts/${postId}/like`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id }),
       })
       const data = await res.json()
       if (data.success) {
@@ -137,7 +135,7 @@ export default function PostDetail({ boardLabel, boardColor, backHref, initialPo
       const res = await fetch('/api/comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId, authorId: user.id, content: newComment.trim(), isAnonymous: isAnonymousComment }),
+        body: JSON.stringify({ postId, content: newComment.trim(), isAnonymous: isAnonymousComment }),
       })
       const data = await res.json()
       if (data.success) {
@@ -155,7 +153,7 @@ export default function PostDetail({ boardLabel, boardColor, backHref, initialPo
       const res = await fetch('/api/comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId, authorId: user.id, content: replyContent.trim(), isAnonymous: isAnonymousComment, parentId }),
+        body: JSON.stringify({ postId, content: replyContent.trim(), isAnonymous: isAnonymousComment, parentId }),
       })
       const data = await res.json()
       if (data.success) {
@@ -181,8 +179,6 @@ export default function PostDetail({ boardLabel, boardColor, backHref, initialPo
     try {
       const res = await fetch(`/api/comments/${commentId}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id }),
       })
       if (res.ok) {
         setPost((prev) => {
@@ -208,7 +204,7 @@ export default function PostDetail({ boardLabel, boardColor, backHref, initialPo
       const res = await fetch(`/api/posts/${postId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: editTitle.trim(), content: editContent.trim(), userId: user?.id }),
+        body: JSON.stringify({ title: editTitle.trim(), content: editContent.trim() }),
       })
       const data = await res.json()
       if (data.success) {

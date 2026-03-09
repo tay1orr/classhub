@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { cookies } from 'next/headers'
 import PostDetail from './PostDetail'
 
 interface Props {
@@ -52,8 +53,14 @@ async function fetchPost(postId: string) {
 
     if (!post) return null
 
-    // 조회수 증가 (비동기, 응답 안 기다림)
-    prisma.post.update({ where: { id: postId }, data: { views: { increment: 1 } } }).catch(() => {})
+    // 조회수 중복 방지: 24시간 내 같은 post 재방문 시 카운트 안 함
+    const cookieStore = await cookies()
+    const viewedKey = `viewed_${postId}`
+    const alreadyViewed = cookieStore.get(viewedKey)
+    if (!alreadyViewed) {
+      prisma.post.update({ where: { id: postId }, data: { views: { increment: 1 } } }).catch(() => {})
+      cookieStore.set(viewedKey, '1', { maxAge: 60 * 60 * 24, httpOnly: true, path: '/' })
+    }
 
     return {
       id: post.id,

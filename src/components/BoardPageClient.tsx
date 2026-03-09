@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { formatRelativeTime } from '@/lib/utils'
@@ -54,13 +54,27 @@ export default function BoardPageClient({ boardKey, title, color, emoji, writeLa
   const classroom = params.classroom as string
   const boardSlug = boardKey.toLowerCase()
   const [search, setSearch] = useState('')
+  const [searchResults, setSearchResults] = useState<Post[] | null>(null)
+  const [isSearching, setIsSearching] = useState(false)
+  const debounceRef = useRef<NodeJS.Timeout>()
 
-  const displayed = search
-    ? initialPosts.filter((p) => p.title.includes(search) || (!p.isAnonymous && p.author.includes(search)))
-    : initialPosts
+  useEffect(() => {
+    clearTimeout(debounceRef.current)
+    if (!search.trim() || search.trim().length < 2) { setSearchResults(null); return }
+    debounceRef.current = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const res = await fetch(`/api/posts/search?q=${encodeURIComponent(search)}&board=${boardKey}`)
+        const data = await res.json()
+        setSearchResults(data.posts || [])
+      } catch { setSearchResults([]) }
+      finally { setIsSearching(false) }
+    }, 300)
+  }, [search, boardKey])
 
-  const pinned = displayed.filter((p) => p.isPinned)
-  const normal = displayed.filter((p) => !p.isPinned)
+  const displayed = searchResults ?? initialPosts
+  const pinned = searchResults ? [] : displayed.filter((p) => p.isPinned)
+  const normal = searchResults ? displayed : displayed.filter((p) => !p.isPinned)
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
@@ -84,8 +98,9 @@ export default function BoardPageClient({ boardKey, title, color, emoji, writeLa
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <input value={search} onChange={(e) => setSearch(e.target.value)}
-          placeholder="제목 또는 작성자 검색..."
+          placeholder="제목 검색 (전체 글 대상)..."
           className="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+      {isSearching && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">검색 중...</span>}
       </div>
 
       {/* 게시글 목록 */}

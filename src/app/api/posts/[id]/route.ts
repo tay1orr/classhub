@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from '@/lib/auth-server';
 
 export async function GET(
   request: Request,
@@ -134,135 +135,44 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
-    const postId = params.id;
-    const { title, content, userId } = await request.json();
+    const session = await getServerSession()
+    if (!session) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
 
-    if (!title || !content || !userId) {
-      return NextResponse.json(
-        { error: 'Title, content, and userId are required' },
-        { status: 400 }
-      );
+    const postId = params.id
+    const { title, content } = await request.json()
+    if (!title?.trim() || !content?.trim()) {
+      return NextResponse.json({ error: '제목과 내용을 입력해주세요.' }, { status: 400 })
     }
 
-    // 게시글이 존재하는지 확인
-    const post = await prisma.post.findUnique({
-      where: { id: postId },
-      select: {
-        id: true,
-        authorId: true
-      }
-    });
+    const post = await prisma.post.findUnique({ where: { id: postId }, select: { authorId: true } })
+    if (!post) return NextResponse.json({ error: '게시글을 찾을 수 없습니다.' }, { status: 404 })
+    if (post.authorId !== session.id) return NextResponse.json({ error: '수정 권한이 없습니다.' }, { status: 403 })
 
-    if (!post) {
-      return NextResponse.json(
-        { error: 'Post not found' },
-        { status: 404 }
-      );
-    }
-
-    // 작성자 권한 확인
-    if (post.authorId !== userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized: Only the author can edit this post' },
-        { status: 403 }
-      );
-    }
-
-    // 게시글 수정
-    const updatedPost = await prisma.post.update({
-      where: { id: postId },
-      data: {
-        title: title.trim(),
-        content: content.trim(),
-        updatedAt: new Date()
-      }
-    });
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Post updated successfully',
-      post: updatedPost
-    });
-
+    await prisma.post.update({ where: { id: postId }, data: { title: title.trim(), content: content.trim() } })
+    return NextResponse.json({ success: true })
   } catch (error: any) {
-    console.error('Update post error:', error);
-    return NextResponse.json(
-      { error: 'Failed to update post: ' + error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '수정 중 오류가 발생했습니다.' }, { status: 500 })
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
-    const postId = params.id;
-    const { userId } = await request.json();
+    const session = await getServerSession()
+    if (!session) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'UserId is required' },
-        { status: 400 }
-      );
+    const postId = params.id
+    const post = await prisma.post.findUnique({ where: { id: postId }, select: { authorId: true } })
+    if (!post) return NextResponse.json({ error: '게시글을 찾을 수 없습니다.' }, { status: 404 })
+
+    if (post.authorId !== session.id && session.role !== 'ADMIN') {
+      return NextResponse.json({ error: '삭제 권한이 없습니다.' }, { status: 403 })
     }
 
-    // 게시글과 사용자 정보 확인
-    const post = await prisma.post.findUnique({
-      where: { id: postId },
-      select: {
-        id: true,
-        authorId: true
-      }
-    });
-
-    if (!post) {
-      return NextResponse.json(
-        { error: 'Post not found' },
-        { status: 404 }
-      );
-    }
-
-    // 사용자 정보 확인 (관리자 권한 체크)
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, role: true }
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const isAdmin = user.role === 'ADMIN';
-    const isAuthor = post.authorId === userId;
-
-    if (!isAuthor && !isAdmin) {
-      return NextResponse.json(
-        { error: 'Unauthorized: Only the author or admin can delete this post' },
-        { status: 403 }
-      );
-    }
-
-    // 먼저 관련 댓글들 삭제
-    await prisma.comment.deleteMany({
-      where: { postId: postId }
-    });
-
-    // 게시글 삭제
-    await prisma.post.delete({
-      where: { id: postId }
-    });
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Post deleted successfully' 
-    });
+    await prisma.comment.deleteMany({ where: { postId } })
+    await prisma.post.delete({ where: { id: postId } })
+    return NextResponse.json({ success: true })
 
   } catch (error: any) {
     console.error('Delete post error:', error);

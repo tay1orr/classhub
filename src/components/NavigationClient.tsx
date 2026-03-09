@@ -62,6 +62,10 @@ export default function NavigationClient({ user }: { user: SessionUser | null })
                     <Shield className="h-3 w-3" />관리자
                   </Link>
                 )}
+                <Link href="/mypage"
+                  className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+                  마이페이지
+                </Link>
                 <button onClick={handleLogout}
                   className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 transition-colors">
                   <LogOut className="h-4 w-4" />로그아웃
@@ -100,6 +104,9 @@ export default function NavigationClient({ user }: { user: SessionUser | null })
                     🛡 관리자 패널
                   </Link>
                 )}
+                <Link href="/mypage" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:text-blue-600">
+                  마이페이지
+                </Link>
                 <button onClick={handleLogout} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:text-red-600">
                   로그아웃
                 </button>
