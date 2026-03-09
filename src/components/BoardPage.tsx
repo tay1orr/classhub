@@ -70,6 +70,7 @@ export default async function BoardPage({ boardKey, title, color, emoji, writeLa
       initialPosts={posts}
       pagination={pagination}
       userLoggedIn={!!user}
+      isAdmin={user?.role === 'ADMIN'}
     />
   )
 }

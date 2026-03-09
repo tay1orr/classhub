@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { formatRelativeTime } from '@/lib/utils'
-import { MessageSquare, Heart, Eye, Pin, PenSquare, Search } from 'lucide-react'
+import { MessageSquare, Heart, Eye, Pin, PenSquare, Search, Trash2 } from 'lucide-react'
 
 interface Post {
   id: string
@@ -34,6 +34,7 @@ interface Props {
   initialPosts: Post[]
   pagination: Pagination
   userLoggedIn: boolean
+  isAdmin?: boolean
 }
 
 const colorMap: Record<string, string> = {
@@ -49,14 +50,24 @@ const btnMap: Record<string, string> = {
   pink: 'bg-pink-600 hover:bg-pink-700',
 }
 
-export default function BoardPageClient({ boardKey, title, color, emoji, writeLabel = '글쓰기', initialPosts, pagination, userLoggedIn }: Props) {
+export default function BoardPageClient({ boardKey, title, color, emoji, writeLabel = '글쓰기', initialPosts, pagination, userLoggedIn, isAdmin = false }: Props) {
   const params = useParams()
   const classroom = params.classroom as string
   const boardSlug = boardKey.toLowerCase()
+  const [posts, setPosts] = useState(initialPosts)
   const [search, setSearch] = useState('')
   const [searchResults, setSearchResults] = useState<Post[] | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const debounceRef = useRef<NodeJS.Timeout>()
+
+  const handleDelete = async (postId: string) => {
+    if (!confirm('이 게시글을 삭제하시겠습니까?')) return
+    const res = await fetch(`/api/posts/${postId}`, { method: 'DELETE' })
+    if (res.ok) {
+      setPosts((prev) => prev.filter((p) => p.id !== postId))
+      if (searchResults) setSearchResults((prev) => prev?.filter((p) => p.id !== postId) ?? null)
+    }
+  }
 
   useEffect(() => {
     clearTimeout(debounceRef.current)
@@ -72,7 +83,7 @@ export default function BoardPageClient({ boardKey, title, color, emoji, writeLa
     }, 300)
   }, [search, boardKey])
 
-  const displayed = searchResults ?? initialPosts
+  const displayed = searchResults ?? posts
   const pinned = searchResults ? [] : displayed.filter((p) => p.isPinned)
   const normal = searchResults ? displayed : displayed.filter((p) => !p.isPinned)
 
@@ -119,11 +130,11 @@ export default function BoardPageClient({ boardKey, title, color, emoji, writeLa
           <>
             {pinned.length > 0 && (
               <div className="border-b">
-                {pinned.map((p) => <PostRow key={p.id} post={p} classroom={classroom} boardSlug={boardSlug} />)}
+                {pinned.map((p) => <PostRow key={p.id} post={p} classroom={classroom} boardSlug={boardSlug} isAdmin={isAdmin} onDelete={handleDelete} />)}
               </div>
             )}
             <div className="divide-y">
-              {normal.map((p) => <PostRow key={p.id} post={p} classroom={classroom} boardSlug={boardSlug} />)}
+              {normal.map((p) => <PostRow key={p.id} post={p} classroom={classroom} boardSlug={boardSlug} isAdmin={isAdmin} onDelete={handleDelete} />)}
             </div>
           </>
         )}
@@ -146,31 +157,41 @@ export default function BoardPageClient({ boardKey, title, color, emoji, writeLa
   )
 }
 
-function PostRow({ post, classroom, boardSlug }: { post: Post; classroom: string; boardSlug: string }) {
+function PostRow({ post, classroom, boardSlug, isAdmin, onDelete }: { post: Post; classroom: string; boardSlug: string; isAdmin: boolean; onDelete: (id: string) => void }) {
   return (
-    <Link href={`/${classroom}/${boardSlug}/${post.id}`}
-      className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors group">
-      <div className="flex items-center gap-2 min-w-0">
-        {post.isPinned && <Pin className="h-3.5 w-3.5 text-yellow-500 shrink-0" />}
-        <span className={`truncate text-sm group-hover:text-blue-600 transition-colors ${post.isPinned ? 'font-semibold' : ''}`}>
-          {post.title}
-        </span>
-        {post.comments > 0 && (
-          <span className="shrink-0 flex items-center gap-0.5 text-xs text-blue-400">
-            <MessageSquare className="h-3 w-3" />{post.comments}
+    <div className="flex items-center hover:bg-gray-50 transition-colors group">
+      <Link href={`/${classroom}/${boardSlug}/${post.id}`}
+        className="flex items-center justify-between px-4 py-3.5 flex-1 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          {post.isPinned && <Pin className="h-3.5 w-3.5 text-yellow-500 shrink-0" />}
+          <span className={`truncate text-sm group-hover:text-blue-600 transition-colors ${post.isPinned ? 'font-semibold' : ''}`}>
+            {post.title}
           </span>
-        )}
-      </div>
-      <div className="shrink-0 flex items-center gap-4 text-xs text-gray-400 ml-3">
-        <span className="hidden sm:block">{post.isAnonymous ? '익명' : post.author}</span>
-        {post.likes > 0 && (
-          <span className="flex items-center gap-0.5 text-pink-400">
-            <Heart className="h-3 w-3" />{post.likes}
-          </span>
-        )}
-        <span className="flex items-center gap-0.5"><Eye className="h-3 w-3" />{post.views}</span>
-        <span className="hidden sm:block">{formatRelativeTime(post.createdAt)}</span>
-      </div>
-    </Link>
+          {post.comments > 0 && (
+            <span className="shrink-0 flex items-center gap-0.5 text-xs text-blue-400">
+              <MessageSquare className="h-3 w-3" />{post.comments}
+            </span>
+          )}
+        </div>
+        <div className="shrink-0 flex items-center gap-4 text-xs text-gray-400 ml-3">
+          <span className="hidden sm:block">{post.isAnonymous ? '익명' : post.author}</span>
+          {post.likes > 0 && (
+            <span className="flex items-center gap-0.5 text-pink-400">
+              <Heart className="h-3 w-3" />{post.likes}
+            </span>
+          )}
+          <span className="flex items-center gap-0.5"><Eye className="h-3 w-3" />{post.views}</span>
+          <span className="hidden sm:block">{formatRelativeTime(post.createdAt)}</span>
+        </div>
+      </Link>
+      {isAdmin && (
+        <button
+          onClick={() => onDelete(post.id)}
+          className="shrink-0 px-3 py-3.5 text-gray-300 hover:text-red-500 transition-colors"
+          title="삭제">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
+    </div>
   )
 }
