@@ -39,22 +39,28 @@ export async function GET(
           }
         },
         comments: {
+          where: { deletedAt: null, parentId: null },
           select: {
             id: true,
             content: true,
             isAnonymous: true,
             likesCount: true,
             createdAt: true,
-            author: {
+            author: { select: { id: true, name: true } },
+            replies: {
+              where: { deletedAt: null },
               select: {
                 id: true,
-                name: true
-              }
-            }
+                content: true,
+                isAnonymous: true,
+                likesCount: true,
+                createdAt: true,
+                author: { select: { id: true, name: true } },
+              },
+              orderBy: { createdAt: 'asc' },
+            },
           },
-          orderBy: {
-            createdAt: 'asc'
-          }
+          orderBy: { createdAt: 'asc' },
         }
       }
     });
@@ -91,12 +97,22 @@ export async function GET(
       updatedAt: post.updatedAt.toISOString(),
       comments: post.comments.map(comment => ({
         id: comment.id,
-        content: comment.content,
-        author: comment.author.name,
+        content: comment.isAnonymous ? '익명' : comment.author.name,
+        author: comment.isAnonymous ? '익명' : comment.author.name,
         authorId: comment.author.id,
         isAnonymous: comment.isAnonymous,
         createdAt: comment.createdAt.toISOString(),
-        likes: comment.likesCount || 0
+        likes: comment.likesCount || 0,
+        replies: comment.replies.map((r: any) => ({
+          id: r.id,
+          content: r.content,
+          author: r.isAnonymous ? '익명' : r.author.name,
+          authorId: r.author.id,
+          isAnonymous: r.isAnonymous,
+          createdAt: r.createdAt.toISOString(),
+          likes: r.likesCount || 0,
+          replies: [],
+        })),
       }))
     };
 
@@ -216,21 +232,14 @@ export async function DELETE(
     // 사용자 정보 확인 (관리자 권한 체크)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        email: true
-      }
+      select: { id: true, role: true }
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // 권한 확인: 작성자이거나 관리자여야 함
-    const isAdmin = user.email === 'admin@classhub.co.kr';
+    const isAdmin = user.role === 'ADMIN';
     const isAuthor = post.authorId === userId;
 
     if (!isAuthor && !isAdmin) {

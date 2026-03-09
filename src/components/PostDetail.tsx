@@ -90,28 +90,18 @@ export default function PostDetail({ boardLabel, boardColor, backHref }: PostDet
     }
   }, [postId, likeKey])
 
-  // 댓글 별도 fetch (항상 최신)
-  const fetchComments = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/comments?postId=${postId}`, { cache: 'no-store' })
-      const data = await res.json()
-      if (res.ok) {
-        setPost((prev) => prev ? { ...prev, comments: data.comments } : prev)
-      }
-    } catch { /* ignore */ }
-  }, [postId])
-
   useEffect(() => {
     fetchPost()
   }, [fetchPost])
 
-  useEffect(() => {
-    if (post) fetchComments()
-  }, [post?.id, fetchComments])
-
   const handleLike = async () => {
     if (!user) { alert('로그인이 필요합니다.'); return }
     if (isLiking) return
+    // 낙관적 업데이트
+    const newLiked = !liked
+    const newCount = newLiked ? likeCount + 1 : likeCount - 1
+    setLiked(newLiked)
+    setLikeCount(newCount)
     setIsLiking(true)
     try {
       const res = await fetch(`/api/posts/${postId}/like`, {
@@ -124,9 +114,14 @@ export default function PostDetail({ boardLabel, boardColor, backHref }: PostDet
         setLiked(data.liked)
         setLikeCount(data.likes)
         localStorage.setItem(likeKey, String(data.liked))
+      } else {
+        setLiked(!newLiked)
+        setLikeCount(likeCount)
       }
-    } catch { /* ignore */ }
-    finally { setIsLiking(false) }
+    } catch {
+      setLiked(!newLiked)
+      setLikeCount(likeCount)
+    } finally { setIsLiking(false) }
   }
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
@@ -142,7 +137,7 @@ export default function PostDetail({ boardLabel, boardColor, backHref }: PostDet
       const data = await res.json()
       if (data.success) {
         setNewComment('')
-        await fetchComments()
+        setPost((prev) => prev ? { ...prev, comments: [...(prev.comments || []), { ...data.comment, replies: [] }] } : prev)
       } else {
         alert(data.error || '댓글 작성에 실패했습니다.')
       }
@@ -161,7 +156,15 @@ export default function PostDetail({ boardLabel, boardColor, backHref }: PostDet
       if (data.success) {
         setReplyContent('')
         setReplyTo(null)
-        await fetchComments()
+        setPost((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            comments: prev.comments.map((c) =>
+              c.id === parentId ? { ...c, replies: [...(c.replies || []), data.comment] } : c
+            ),
+          }
+        })
       } else {
         alert(data.error || '답글 작성에 실패했습니다.')
       }
@@ -176,8 +179,17 @@ export default function PostDetail({ boardLabel, boardColor, backHref }: PostDet
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user?.id }),
       })
-      if (res.ok) await fetchComments()
-      else {
+      if (res.ok) {
+        setPost((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            comments: prev.comments
+              .filter((c) => c.id !== commentId)
+              .map((c) => ({ ...c, replies: (c.replies || []).filter((r) => r.id !== commentId) })),
+          }
+        })
+      } else {
         const d = await res.json()
         alert(d.error || '삭제에 실패했습니다.')
       }
